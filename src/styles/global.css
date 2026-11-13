@@ -1,0 +1,500 @@
+/* =====================================================================
+   Vanlife — styles globaux (mobile d'abord)
+   1. Variables · 2. Base & accessibilité · 3. Bandeau, en-tête, pied de page
+   4. Boutons & badges · 5. Accueil (hero) · 6. Sections éditoriales
+   7. Concept · 8. Séjour · 9. Programme · 10. Prix · 11. Galerie
+   12. Formulaire · 13. Récapitulatif & confirmation · 14. Animations
+   15. Points de rupture · 16. Contraste élevé
+   ===================================================================== */
+
+/* ---------- 1. Variables ---------- */
+:root {
+  --c-encre: #173d45;        /* bleu pétrole */
+  --c-encre-2: #2c5a63;
+  --c-nuit: #0f262c;         /* sections sombres (galerie, pied de page) */
+  --c-accent: #b85a2b;       /* orange brique : boutons (blanc dessus 4,6:1) */
+  --c-accent-fonce: #9a4820; /* petits textes orangés sur fond clair (≥ 5,6:1) */
+  --c-accent-clair: #f7c9a9; /* petits textes orangés sur fond sombre */
+  --c-fond: #faf6f0;         /* sable */
+  --c-fond-alt: #f0e9de;
+  --c-blanc: #ffffff;
+  --c-texte: #1f2d30;
+  --c-texte-doux: #4b5a5d;
+  --c-bord: #d8cfc2;         /* séparateurs décoratifs uniquement */
+  --c-bord-champ: #857b6e;   /* bord des champs : 4,1:1 (WCAG 1.4.11) */
+  --c-focus: #173d45;        /* focus sur fond clair (≥ 9,7:1) */
+  --c-focus-sombre: #ffd166; /* focus sur fond sombre (≥ 5,3:1) */
+  --c-erreur: #b3261e;
+  --c-erreur-fond: #fdecea;
+  --c-info-fond: #e7f1f2;
+  --c-ok: #1e6b4a;
+  --c-demo-fond: #fff3cd;
+  --c-demo-texte: #5c4400;
+  --c-demo-bord: #ecd89a;
+  --f-titre: 'Playfair Display Variable', Georgia, 'Times New Roman', serif;
+  --f-texte: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --hauteur-header: 64px;
+  --rayon: 14px;
+  --ombre: 0 2px 14px rgba(15, 38, 44, 0.08);
+  --ombre-forte: 0 18px 40px rgba(15, 38, 44, 0.18);
+  font-family: var(--f-texte);
+  line-height: 1.6;
+  color: var(--c-texte);
+  background: var(--c-fond);
+}
+
+/* ---------- 2. Base & accessibilité ---------- */
+*, *::before, *::after { box-sizing: border-box; }
+html { scroll-padding-top: calc(var(--hauteur-header) + 16px); -webkit-text-size-adjust: 100%; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+body { margin: 0; background: var(--c-fond); overflow-wrap: anywhere; font-size: 1rem; }
+h1, h2, h3 { color: var(--c-encre); line-height: 1.15; margin: 0 0 0.5em; }
+h1, h2 { font-family: var(--f-titre); font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-size: clamp(2.3rem, 8vw, 4.6rem); }
+h2 { font-size: clamp(1.8rem, 5vw, 2.9rem); }
+h3, .h3 { font-size: 1.2rem; font-weight: 700; }
+p { margin: 0 0 1em; }
+a { color: var(--c-encre-2); text-underline-offset: 0.15em; }
+strong { font-weight: 700; }
+img { max-width: 100%; height: auto; display: block; }
+figure { margin: 0; }
+
+:focus-visible { outline: 3px solid var(--c-focus); outline-offset: 3px; }
+.hero, .site-header, .site-footer, .lien-evitement, .section-sombre, .visionneuse { --c-focus: var(--c-focus-sombre); }
+[tabindex='-1']:focus { outline: none; }
+
+.lien-evitement {
+  position: absolute; left: 12px; top: -100px; z-index: 100;
+  background: var(--c-encre); color: var(--c-blanc); font-weight: 700;
+  padding: 12px 18px; border-radius: 8px; text-decoration: none;
+}
+.lien-evitement:focus { top: 12px; }
+main:focus { outline: none; }
+
+.conteneur { width: 100%; max-width: 1200px; margin: 0 auto; padding-inline: 20px; }
+.conteneur-etroit { max-width: 720px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.carte { background: var(--c-blanc); border-radius: var(--rayon); box-shadow: var(--ombre); }
+.note { font-size: 0.9rem; color: var(--c-texte-doux); margin-top: 20px; }
+
+/* ---------- 3. Bandeau, en-tête, pied de page ---------- */
+.bandeau-demo {
+  background: var(--c-demo-fond); color: var(--c-demo-texte); text-align: center;
+  padding: 8px 16px; font-size: 0.9rem; border-bottom: 1px solid var(--c-demo-bord);
+}
+
+.site-header {
+  background: rgba(15, 38, 44, 0.96); color: var(--c-blanc);
+  position: sticky; top: 0; z-index: 20;
+  backdrop-filter: saturate(1.4) blur(8px);
+  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+.header-interieur {
+  position: relative; display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; min-height: var(--hauteur-header);
+}
+.logo {
+  display: inline-flex; flex-direction: column; justify-content: center; min-height: 44px;
+  color: var(--c-blanc); text-decoration: none; line-height: 1.15;
+}
+.logo-bouton { background: none; border: 0; padding: 0; font: inherit; text-align: left; cursor: pointer; }
+.logo-nom { font-weight: 800; letter-spacing: 0.14em; font-size: 1rem; }
+.logo-activite { font-size: 0.72rem; color: #c9dcdf; letter-spacing: 0.02em; }
+
+.menu-bouton {
+  display: inline-flex; align-items: center; gap: 10px; min-height: 44px; padding: 8px 14px;
+  background: transparent; color: var(--c-blanc); border: 1px solid rgba(255, 255, 255, 0.45);
+  border-radius: 999px; font: inherit; font-weight: 600; cursor: pointer;
+}
+.menu-icone, .menu-icone::before, .menu-icone::after {
+  display: block; width: 18px; height: 2px; background: currentColor; border-radius: 2px; position: relative;
+}
+.menu-icone::before, .menu-icone::after { content: ''; position: absolute; left: 0; }
+.menu-icone::before { top: -6px; }
+.menu-icone::after { top: 6px; }
+
+/* Mobile : navigation repliée dans un panneau sous l'en-tête. */
+.navigation { display: none; }
+.navigation-ouverte {
+  display: flex; flex-direction: column; gap: 4px;
+  position: absolute; top: 100%; left: 0; right: 0; padding: 12px 20px 20px;
+  background: var(--c-nuit); box-shadow: var(--ombre-forte);
+}
+.navigation a {
+  color: var(--c-blanc); text-decoration: none; padding: 12px; border-radius: 10px;
+  min-height: 48px; display: flex; align-items: center; font-weight: 500;
+}
+.navigation a:hover { background: rgba(255, 255, 255, 0.1); }
+.navigation a.nav-cta { background: var(--c-accent); font-weight: 700; justify-content: center; margin-top: 6px; }
+.navigation a.nav-cta:hover { background: var(--c-accent-fonce); }
+
+.site-footer { background: var(--c-nuit); color: #d9e6e8; padding: 48px 0 32px; font-size: 0.92rem; }
+.site-footer a { color: #d9e6e8; }
+.footer-grille { display: grid; gap: 24px; margin-bottom: 24px; }
+.footer-marque { font-weight: 800; letter-spacing: 0.14em; color: var(--c-blanc); margin-bottom: 4px; }
+.footer-signature { font-family: var(--f-titre); font-size: 1.35rem; color: var(--c-blanc); }
+.footer-titre { text-transform: uppercase; letter-spacing: 0.1em; font-size: 0.78rem; color: var(--c-accent-clair); font-weight: 700; }
+.credits { border-top: 1px solid rgba(255, 255, 255, 0.15); padding-top: 16px; font-size: 0.85rem; }
+.credits summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
+.credits ul { padding-left: 18px; margin: 8px 0 0; columns: 1; }
+.credits li { margin-bottom: 4px; break-inside: avoid; }
+
+/* ---------- 4. Boutons & badges ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; text-align: center;
+  min-height: 50px; padding: 12px 26px; border-radius: 999px; border: 2px solid transparent;
+  font: inherit; font-weight: 600; letter-spacing: 0.01em; text-decoration: none; cursor: pointer;
+  transition: background-color 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.btn:hover:not(:disabled) { transform: translateY(-1px); }
+.btn:disabled { opacity: 0.6; cursor: wait; }
+.btn-principal { background: var(--c-accent); color: var(--c-blanc); box-shadow: 0 6px 18px rgba(184, 90, 43, 0.28); }
+.btn-principal:hover:not(:disabled) { background: var(--c-accent-fonce); }
+.btn-secondaire { background: transparent; color: var(--c-encre); border-color: var(--c-encre); }
+.btn-secondaire:hover:not(:disabled) { background: rgba(23, 61, 69, 0.08); }
+.btn-clair { background: rgba(255, 255, 255, 0.08); color: var(--c-blanc); border-color: var(--c-blanc); }
+.btn-clair:hover { background: rgba(255, 255, 255, 0.18); }
+.btn-pleine-largeur { width: 100%; }
+
+.badge {
+  display: inline-block; font-size: 0.78rem; font-weight: 600; padding: 3px 10px; border-radius: 999px;
+  background: var(--c-demo-fond); color: var(--c-demo-texte); border: 1px solid var(--c-demo-bord);
+  vertical-align: middle; white-space: nowrap;
+}
+
+/* ---------- 5. Accueil immersif ---------- */
+.hero {
+  position: relative; isolation: isolate; overflow: hidden; color: var(--c-blanc);
+  min-height: min(88svh, 860px); display: flex; align-items: flex-end;
+  background: var(--c-nuit);
+}
+.hero-fond { position: absolute; inset: 0; z-index: -2; }
+.hero-image { width: 100%; height: 100%; object-fit: cover; object-position: 50% 60%; }
+.hero::after { /* voile pour la lisibilité du texte, plus dense en bas */
+  content: ''; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(to top, rgba(10, 28, 33, 0.92) 0%, rgba(10, 28, 33, 0.6) 45%, rgba(10, 28, 33, 0.15) 100%);
+}
+.hero-contenu { padding-block: 96px 72px; }
+.hero h1 { color: var(--c-blanc); max-width: 12em; margin-bottom: 0.35em; text-shadow: 0 2px 24px rgba(0, 0, 0, 0.35); }
+.surtitre {
+  text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.8rem; font-weight: 700;
+  color: var(--c-accent-clair); margin-bottom: 0.8em;
+}
+.accroche { font-size: clamp(1.05rem, 2.6vw, 1.3rem); max-width: 34em; margin-bottom: 1.6em; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 12px; }
+.hero-credit {
+  position: absolute; right: 12px; bottom: 8px; margin: 0;
+  font-size: 0.7rem; color: rgba(255, 255, 255, 0.85);
+}
+
+/* ---------- 6. Sections éditoriales ---------- */
+.section { padding: 64px 0; }
+.section-alt { background: var(--c-fond-alt); }
+.section-sombre { background: var(--c-nuit); color: #e3eef0; }
+.section-sombre h2, .section-sombre h3 { color: var(--c-blanc); }
+.section-sombre .surtitre-section { color: var(--c-accent-clair); }
+.surtitre-section {
+  text-transform: uppercase; letter-spacing: 0.16em; font-size: 0.78rem; font-weight: 700;
+  color: var(--c-accent-fonce); margin-bottom: 0.6em;
+}
+.chapo { font-size: clamp(1.05rem, 2.4vw, 1.2rem); max-width: 42em; line-height: 1.65; }
+.legende-photo { font-size: 0.8rem; color: var(--c-texte-doux); padding-top: 8px; line-height: 1.4; }
+.legende-lieu { font-weight: 600; color: var(--c-texte); }
+.section-sombre .legende-photo, .section-sombre .legende-lieu { color: #c9dcdf; }
+
+/* ---------- 7. Concept Vanlife ---------- */
+.concept-intro { margin-bottom: 32px; }
+.concept-points { list-style: none; padding: 0; margin: 0 0 40px; display: grid; gap: 24px; }
+.concept-points li { border-top: 1px solid var(--c-bord); padding-top: 18px; }
+.concept-points p { color: var(--c-texte-doux); margin: 0; }
+.concept-num { font-family: var(--f-titre); font-size: 1.6rem; color: var(--c-accent-fonce); display: block; margin-bottom: 4px; }
+.mosaique { display: grid; gap: 16px; }
+.mosaique img, .video-ambiance-media {
+  width: 100%; aspect-ratio: 4 / 3; height: auto; object-fit: cover; border-radius: var(--rayon);
+}
+.video-ambiance { position: relative; overflow: hidden; border-radius: var(--rayon); }
+/* Léger recadrage : masque une ligne parasite en bas de la vidéo source. */
+.video-ambiance video { transform: scale(1.05); }
+.video-ambiance-media { display: block; background: var(--c-nuit); }
+.video-ambiance-bouton {
+  position: absolute; right: 12px; bottom: 12px; min-height: 44px; padding: 8px 16px;
+  border-radius: 999px; border: 0; background: rgba(15, 38, 44, 0.8); color: var(--c-blanc);
+  font: inherit; font-size: 0.85rem; font-weight: 600; cursor: pointer;
+  --c-focus: var(--c-focus-sombre);
+}
+
+/* ---------- 8. Séjour pilote ---------- */
+.sejour-grille { display: grid; gap: 32px; align-items: center; }
+.sejour-photo img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: var(--rayon); box-shadow: var(--ombre-forte); }
+.sejour-destination { color: var(--c-texte-doux); font-weight: 600; }
+.faits { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; margin: 24px 0 12px; }
+.faits > div { padding: 14px 12px 14px 0; border-top: 1px solid var(--c-bord); }
+.faits dt { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--c-texte-doux); }
+.faits dd { margin: 2px 0 0; font-family: var(--f-titre); font-size: 1.25rem; color: var(--c-encre); }
+.actions-sejour { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 20px; }
+
+/* ---------- 9. Programme illustré ---------- */
+.programme { list-style: none; padding: 0; margin: 32px 0 0; display: grid; gap: 40px; }
+.jour { display: grid; gap: 0; background: var(--c-blanc); border-radius: var(--rayon); overflow: hidden; box-shadow: var(--ombre); }
+.jour-photo img { width: 100%; aspect-ratio: 16 / 10; object-fit: cover; }
+.jour-photo .legende-photo { padding: 8px 20px 0; }
+.jour-texte { padding: 16px 20px 24px; }
+.jour-texte h3 { font-family: var(--f-titre); font-size: clamp(1.35rem, 3.4vw, 1.8rem); font-weight: 600; margin-bottom: 0.3em; }
+.jour-texte p { color: var(--c-texte-doux); margin: 0; }
+.jour-num {
+  margin: 0 0 6px !important; font-weight: 800; letter-spacing: 0.16em; font-size: 0.8rem;
+  color: var(--c-accent-fonce) !important; text-transform: uppercase;
+}
+
+/* ---------- 10. Prix ---------- */
+.prix-carte { padding: 24px; margin-bottom: 20px; border-left: 6px solid var(--c-accent); }
+.prix-montant { font-family: var(--f-titre); font-size: clamp(2.2rem, 7vw, 3rem); font-weight: 600; color: var(--c-encre); margin: 0; }
+.prix-pour { font-family: var(--f-texte); font-size: 0.42em; font-weight: 600; }
+.prix-detail { color: var(--c-texte-doux); margin-bottom: 8px; }
+.colonnes { display: grid; gap: 16px; }
+.liste-bloc { padding: 22px 24px; }
+.liste-bloc ul { list-style: none; padding: 0; margin: 0; }
+.liste-bloc li { padding: 6px 0 6px 30px; position: relative; }
+.liste-bloc li::before { position: absolute; left: 0; top: 6px; font-weight: 800; }
+.inclus li::before { content: '✓'; color: var(--c-ok); }
+.a-prevoir li::before { content: '+'; color: var(--c-accent-fonce); }
+
+/* ---------- 11. Galerie ---------- */
+.galerie {
+  list-style: none; padding: 0; margin: 28px 0 0;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 150px; gap: 10px;
+}
+.galerie-item-1, .galerie-item-4 { grid-column: span 2; }
+.galerie-bouton {
+  position: relative; display: block; width: 100%; height: 100%; padding: 0; border: 0;
+  border-radius: 10px; overflow: hidden; cursor: zoom-in; background: #1b3a41;
+}
+.galerie-bouton img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.6s ease; }
+.galerie-bouton:hover img { transform: scale(1.05); }
+.galerie-lieu {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 24px 10px 8px; text-align: left;
+  font-size: 0.8rem; font-weight: 600; color: var(--c-blanc);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.75), transparent);
+}
+.visionneuse {
+  width: min(1100px, 94vw); max-height: 94vh; padding: 12px; border: 0; border-radius: var(--rayon);
+  background: var(--c-nuit); color: var(--c-blanc);
+}
+.visionneuse::backdrop { background: rgba(5, 15, 18, 0.88); }
+.visionneuse-figure img { width: 100%; max-height: 74vh; object-fit: contain; border-radius: 8px; }
+.visionneuse .legende-photo, .visionneuse .legende-lieu { color: #d9e6e8; }
+.visionneuse-actions { display: flex; align-items: center; justify-content: center; gap: 10px; padding-top: 10px; flex-wrap: wrap; }
+.visionneuse-actions button {
+  min-width: 48px; min-height: 48px; padding: 8px 16px; border-radius: 999px; cursor: pointer;
+  background: transparent; color: var(--c-blanc); border: 1px solid rgba(255, 255, 255, 0.5); font: inherit; font-weight: 600;
+}
+.visionneuse-actions .visionneuse-fermer { background: var(--c-accent); border-color: var(--c-accent); }
+
+/* ---------- 12. Formulaire ---------- */
+.intro { font-size: 1.05rem; }
+.formulaire, .recap { padding: 22px 20px; }
+.champs-obligatoires { font-size: 0.9rem; color: var(--c-texte-doux); }
+.champ { margin-bottom: 20px; }
+.champ label { display: block; font-weight: 600; margin-bottom: 6px; }
+.aide { font-size: 0.9rem; color: var(--c-texte-doux); margin: -2px 0 6px; }
+.champ input {
+  display: block; width: 100%; max-width: 100%; min-width: 0; min-height: 50px; padding: 10px 14px;
+  font: inherit; font-size: 1rem; /* 16 px : évite le zoom automatique sur iOS */
+  color: var(--c-texte); background: var(--c-blanc);
+  border: 2px solid var(--c-bord-champ); border-radius: 10px;
+  -webkit-appearance: none; appearance: none;
+}
+.champ input::placeholder { color: #6b6f70; opacity: 1; }
+.champ input:hover { border-color: var(--c-encre-2); }
+.champ input:focus-visible { border-color: var(--c-encre); outline: 3px solid var(--c-focus); outline-offset: 2px; }
+.champ-erreur input { border-color: var(--c-erreur); background: #fffafa; }
+.msg-erreur { color: var(--c-erreur); font-weight: 600; font-size: 0.95rem; margin: 6px 0 0; }
+.msg-erreur::before { content: '⚠ '; }
+
+.alerte { border-radius: 10px; padding: 14px 16px; margin-bottom: 18px; }
+.alerte ul { margin: 6px 0 0; padding-left: 20px; }
+.alerte p:last-child { margin-bottom: 0; }
+.alerte-erreur { background: var(--c-erreur-fond); color: var(--c-erreur); border: 1px solid #f3b9b4; }
+.alerte-erreur a { color: var(--c-erreur); }
+.alerte-info { background: var(--c-info-fond); border: 1px solid #b9d6d9; color: var(--c-encre); }
+.alerte[tabindex='-1']:focus { outline: 3px solid currentColor; outline-offset: 2px; }
+
+/* ---------- 13. Récapitulatif & confirmation ---------- */
+.liste-recap { margin: 0 0 18px; }
+.liste-recap > div { display: grid; grid-template-columns: 1fr; gap: 2px; padding: 10px 0; border-bottom: 1px solid var(--c-bord); }
+.liste-recap dt { font-size: 0.85rem; color: var(--c-texte-doux); text-transform: uppercase; letter-spacing: 0.04em; }
+.liste-recap dd { margin: 0; font-weight: 600; }
+.cesure { word-break: break-all; }
+.actions { display: flex; flex-direction: column-reverse; gap: 12px; }
+.actions .btn { width: 100%; }
+.statut-pastille {
+  display: inline-block; background: var(--c-demo-fond); color: var(--c-demo-texte);
+  border: 1px solid var(--c-demo-bord); padding: 4px 14px; border-radius: 999px; font-weight: 700; font-size: 0.9rem;
+}
+.confirmation h1 { font-size: clamp(1.8rem, 6vw, 2.8rem); }
+.confirmation .recap { margin-bottom: 24px; }
+.suite-titre { margin-top: 8px; }
+
+/* ---------- 14. Animations discrètes ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  /* Zoom très lent de la photo d'accueil. */
+  .hero-image { animation: zoom-lent 28s ease-in-out infinite alternate; }
+  @keyframes zoom-lent { from { transform: scale(1); } to { transform: scale(1.08); } }
+
+  /* Apparition au défilement (navigateurs compatibles uniquement : sinon contenu affiché tel quel). */
+  @supports (animation-timeline: view()) {
+    .apparition {
+      animation: apparition linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+    /* Glissement seul, sans transparence : le contenu n'est jamais masqué (impression, captures). */
+    @keyframes apparition { from { transform: translateY(24px); } to { transform: none; } }
+  }
+}
+
+/* ---------- 15. Points de rupture ---------- */
+@media (max-width: 359px) {
+  .conteneur { padding-inline: 14px; }
+  .logo-activite { display: none; }
+}
+
+@media (min-width: 700px) {
+  .section { padding: 96px 0; }
+  .hero-contenu { padding-block: 140px 96px; }
+  .concept-points { grid-template-columns: repeat(3, 1fr); gap: 32px; }
+  .mosaique { grid-template-columns: repeat(2, 1fr); }
+  .mosaique-grand { grid-column: span 2; }
+  .mosaique-grand img { aspect-ratio: 16 / 9; }
+  .faits { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .sejour-grille .faits { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .colonnes { grid-template-columns: 1fr 1fr; }
+  .galerie { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-auto-rows: 200px; }
+  .galerie-item-1 { grid-column: span 2; grid-row: span 2; }
+  .galerie-item-4 { grid-column: span 3; }
+  .galerie-item-8 { grid-column: span 3; }
+  .footer-grille { grid-template-columns: 1fr 1fr; }
+  .credits ul { columns: 2; column-gap: 32px; }
+  .liste-recap > div { grid-template-columns: 200px 1fr; gap: 16px; align-items: baseline; }
+  .actions { flex-direction: row; justify-content: flex-end; }
+  .actions .btn { width: auto; }
+  .formulaire, .recap { padding: 32px; }
+  .formulaire .btn-pleine-largeur { width: auto; }
+}
+
+@media (min-width: 1024px) {
+  /* Navigation complète, sans bouton Menu. */
+  .menu-bouton { display: none; }
+  .navigation, .navigation-ouverte {
+    display: flex; flex-direction: row; position: static; padding: 0; gap: 2px;
+    background: none; box-shadow: none;
+  }
+  .navigation a { padding: 10px 12px; min-height: 44px; font-size: 0.95rem; }
+  .navigation a.nav-cta { margin: 0 0 0 8px; padding-inline: 18px; border-radius: 999px; }
+
+  .sejour-grille { grid-template-columns: 1.15fr 1fr; gap: 64px; }
+  .sejour-photo img { aspect-ratio: 5 / 4; }
+
+  /* Grande photo à gauche (2 × 2), vidéo et photos en cases standard à droite. */
+  .mosaique { grid-template-columns: repeat(4, 1fr); }
+  .mosaique-grand { grid-column: span 2; grid-row: span 2; display: flex; flex-direction: column; }
+  .mosaique-grand img { aspect-ratio: auto; flex: 1; min-height: 0; height: 100%; }
+
+  /* Programme : sections alternées photo / texte. */
+  .programme { gap: 56px; }
+  .jour { grid-template-columns: 1.2fr 1fr; align-items: center; background: none; box-shadow: none; border-radius: 0; overflow: visible; gap: 48px; }
+  .jour:nth-child(even) .jour-photo { order: 2; }
+  .jour-photo img { aspect-ratio: 3 / 2; border-radius: var(--rayon); box-shadow: var(--ombre-forte); }
+  .jour-photo .legende-photo { padding: 8px 0 0; }
+  .jour-texte { padding: 0; }
+  .jour-texte p:last-child { font-size: 1.1rem; }
+
+  .grille-prix { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 16px; align-items: stretch; }
+  .grille-prix .prix-carte { margin-bottom: 0; }
+  .grille-prix .colonnes { display: contents; }
+
+  .galerie { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-auto-rows: 220px; gap: 12px; }
+  .galerie-item-1 { grid-column: span 2; grid-row: span 2; }
+  .galerie-item-4 { grid-column: span 2; }
+  .galerie-item-8 { grid-column: span 1; }
+}
+
+/* ---------- 16. Mode contraste élevé (Windows) ---------- */
+@media (forced-colors: active) {
+  .btn, .carte, .badge, .jour, .menu-bouton, .galerie-bouton { border: 2px solid CanvasText; }
+  .hero::after { display: none; }
+}
+
+@media print {
+  .apparition, .hero-image { animation: none !important; transform: none !important; }
+  .site-header, .menu-bouton, .video-ambiance-bouton { display: none; }
+}
+
+/* =====================================================================
+   17. Page « Demande de réservation » et navigation entre pages
+   ===================================================================== */
+/* Page affichée : lien du menu correspondant souligné. */
+.navigation a[aria-current='page'] { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 2px; }
+
+/* En-tête de la page de demande. */
+.demande-entete { background: var(--c-nuit); color: var(--c-blanc); padding: 32px 0 40px; --c-focus: var(--c-focus-sombre); }
+.demande-entete h1 { color: var(--c-blanc); font-size: clamp(2rem, 6.5vw, 3.4rem); margin-bottom: 0.3em; }
+.demande-entete .accroche { color: #d9e6e8; margin-bottom: 0; }
+.lien-retour {
+  display: inline-flex; align-items: center; min-height: 44px; margin-bottom: 12px;
+  color: #d9e6e8; font-weight: 600; text-decoration: none;
+}
+.lien-retour:hover { color: var(--c-blanc); text-decoration: underline; }
+
+.demande-grille { display: grid; gap: 24px; padding-block: 32px 72px; align-items: start; }
+.demande-formulaire { min-width: 0; }
+.resume-sejour { overflow: hidden; }
+.resume-sejour-photo { width: 100%; aspect-ratio: 16 / 7; object-fit: cover; }
+.resume-sejour-texte { padding: 16px 20px 20px; }
+.resume-sejour-texte ul { list-style: none; padding: 0; margin: 0 0 12px; }
+.resume-sejour-texte li { padding: 6px 0; border-bottom: 1px solid var(--c-bord); }
+.resume-sejour-texte a { display: inline-flex; align-items: center; min-height: 44px; font-weight: 600; }
+
+/* Invitation à réserver, en bas de l'accueil. */
+.section-appel {
+  position: relative; isolation: isolate; overflow: hidden; color: var(--c-blanc);
+  padding: 96px 0; text-align: center; background: var(--c-nuit); --c-focus: var(--c-focus-sombre);
+}
+.section-appel-fond { position: absolute; inset: 0; z-index: -2; }
+.section-appel-fond img { width: 100%; height: 100%; object-fit: cover; }
+.section-appel::after { content: ''; position: absolute; inset: 0; z-index: -1; background: rgba(10, 28, 33, 0.72); }
+.section-appel h2 { color: var(--c-blanc); }
+.section-appel .accroche { margin-inline: auto; }
+.section-appel-note { margin: 16px 0 0; font-size: 0.85rem; color: #d9e6e8; }
+
+/* Chargement d'une page. */
+.page-chargement { min-height: 60vh; display: grid; place-content: center; justify-items: center; gap: 16px; color: var(--c-texte-doux); }
+.indicateur-chargement {
+  width: 44px; height: 44px; border-radius: 50%;
+  border: 4px solid var(--c-bord); border-top-color: var(--c-accent);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .indicateur-chargement { animation: tourner 0.8s linear infinite; }
+  @keyframes tourner { to { transform: rotate(360deg); } }
+  /* Arrivée sur une page : fondu bref (0,3 s). */
+  .page-entree { animation: entree-page 0.3s ease-out; }
+  @keyframes entree-page { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+}
+
+@media (min-width: 1024px) {
+  .demande-entete { padding: 48px 0 56px; }
+  .demande-grille { grid-template-columns: minmax(0, 1fr) 360px; gap: 48px; padding-block: 48px 96px; }
+  .resume-sejour { grid-column: 2; grid-row: 1; position: sticky; top: calc(var(--hauteur-header) + 24px); }
+  .demande-formulaire { grid-column: 1; grid-row: 1; }
+  .resume-sejour-photo { aspect-ratio: 4 / 3; }
+}
+
+@media print {
+  .page-entree { animation: none !important; }
+}
+
+/* Smartphone : rappel du séjour sans photo, pour atteindre le formulaire plus vite. */
+@media (max-width: 699px) {
+  .resume-sejour-photo { display: none; }
+}
