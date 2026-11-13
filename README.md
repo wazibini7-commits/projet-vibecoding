@@ -172,4 +172,4 @@ Serveur : Fastify 5 · PostgreSQL 18 (Docker) · Prisma 6 · Nodemailer + Mailpi
 
 Paiement d'un acompte, mise en ligne, conformité RGPD complète (purge des données anciennes, mentions légales).
 
-Voir aussi : [`docs/FICHE_RESTITUTION.md`](docs/FICHE_RESTITUTION.md) et [`backend/README.md`](backend/README.md).
+Voir aussi : [`docs/FICHE_RESTITUTION_V2.md`](docs/FICHE_RESTITUTION_V2.md) (version actuelle), [`docs/FICHE_RESTITUTION_V1.md`](docs/FICHE_RESTITUTION_V1.md) (prototype) et [`backend/README.md`](backend/README.md).

@@ -1,5 +1,8 @@
 # Fiche de restitution — Vanlife « Bretagne Sauvage » · prototype v1.0
 
+> Fiche de la **version 1.0** (prototype 100 % navigateur, envoi simulé), conservée telle quelle pour référence.
+> Version actuelle (application avec serveur et base de données) : [`FICHE_RESTITUTION_V2.md`](FICHE_RESTITUTION_V2.md).
+
 **Objet :** parcours de demande de réservation simulée — une page principale et un état de confirmation.
 **Lancement :** `npm install` puis `npm run dev` → http://localhost:5173 (détails dans le README).
 
