@@ -30,7 +30,7 @@ npm run utilisateur:creer -- --email prenom@vanlife.example --nom "Prénom Nom"
 | Commande | Rôle |
 |---|---|
 | `npm run dev` / `npm start` | lancer l'API (avec / sans rechargement automatique) |
-| `npm test` | 92 tests (API publique, e-mails, back-office et sécurité), sur une base séparée `vanlife_test` |
+| `npm test` | 107 tests (API publique, e-mails, espace client, back-office, sécurité), sur une base séparée `vanlife_test` |
 | `npm run utilisateur:creer` | créer un compte du back-office, ou réinitialiser son mot de passe |
 | `npm run verifier` | contrôle TypeScript + tests |
 | `npm run db:up` / `db:down` | démarrer / arrêter PostgreSQL et Mailpit (les données sont conservées) |
@@ -48,7 +48,10 @@ npm run utilisateur:creer -- --email prenom@vanlife.example --nom "Prénom Nom"
 | GET | `/api/sejours/:id` | séjour complet, **au format `Sejour` du frontend** |
 | GET | `/api/sejours/:id/departs` | départs à venir : `date`, `dateRetour`, `placesRestantes`, `complet` |
 | POST | `/api/demandes` | crée une demande → 201 (référence `VL-AAAA-0001`), 400 / 409 avec `{ erreurs: { champ: message } }` |
-| POST | `/api/demandes/suivi` | `{ reference, email }` → état et historique de la demande, 404 sinon |
+| POST | `/api/suivi` | `{ reference, jeton }` (lien personnel) → la demande vue par le client, 404 si lien invalide ou expiré |
+| POST | `/api/suivi/lien` | `{ reference, email }` → nouveau lien envoyé **par e-mail** ; réponse 202 identique dans tous les cas |
+| POST | `/api/suivi/annuler` | `{ reference, jeton, motif? }` → annulation par le client (demande reçue ou en étude) |
+| POST | `/api/suivi/messages` | `{ reference, jeton, texte }` → message à l'équipe Vanlife |
 
 ### Back-office (`/api/admin`, connexion obligatoire)
 
@@ -61,6 +64,7 @@ npm run utilisateur:creer -- --email prenom@vanlife.example --nom "Prénom Nom"
 | GET | `/demandes/export.csv` | export tableur (mêmes filtres) |
 | GET | `/demandes/:reference` | détail : client, message, historique, e-mails, statuts possibles |
 | POST | `/demandes/:reference/statut` | `{ statut, commentaire?, informerClient }` |
+| POST | `/demandes/:reference/messages` | `{ texte }` → réponse au client (e-mail signé du prénom, avec lien de suivi) |
 | PUT | `/demandes/:reference/note` | note interne |
 | GET | `/sejours/:id/departs` | départs avec remplissage |
 | POST · PATCH | `/departs` · `/departs/:id` | créer un départ · capacité, ouvert / complet / fermé — **administrateurs** |
@@ -73,7 +77,10 @@ Corps de `POST /api/demandes` : `{ sejourId, prenom, email, dateDepart: "AAAA-MM
   Le départ est verrouillé pendant le comptage : deux demandes simultanées ne peuvent pas prendre la même dernière place.
 - Une demande refusée ou annulée libère sa place.
 - Anti-spam : 10 demandes par minute et par adresse IP. CORS limité au site Vanlife. En-têtes de sécurité (helmet).
-- Le suivi passe par un POST pour que l'e-mail n'apparaisse jamais dans l'URL ni dans les journaux.
+- **Espace client par lien personnel** (« lien magique ») : secret de 256 bits envoyé par e-mail, seule son empreinte est
+  en base, valable jusqu'à 30 jours après le retour. Chaque e-mail au client contient un nouveau lien. Référence + e-mail
+  ne suffisent jamais : ils servent seulement à recevoir un lien **par e-mail** (3 par heure au plus).
+- Le secret voyage dans le corps des requêtes (POST), jamais dans une URL : absent des journaux du serveur.
 
 **Sécurité du back-office**
 - Mots de passe chiffrés avec **Argon2id** ; 12 caractères minimum. Aucun compte par défaut.
@@ -93,7 +100,13 @@ Corps de `POST /api/demandes` : `{ sejourId, prenom, email, dateDepart: "AAAA-MM
 |---|---|---|
 | Accusé de réception (référence, dates, prix, « pas encore une réservation ») | le client | à chaque nouvelle demande |
 | Notification « nouvelle demande » (coordonnées, message) | l'équipe Vanlife (`EMAIL_EQUIPE`) | à chaque nouvelle demande |
-| Changement de statut (en étude, confirmée, refusée, annulée), avec le commentaire de Vanlife | le client | quand Vanlife change le statut et coche « Informer le client » |
+| Changement de statut (en étude, confirmée, refusée, annulée), avec le commentaire de Vanlife | le client | quand Vanlife change le statut et coche « Informer le client », ou quand le client annule |
+| Lien de suivi | le client | quand il le redemande (référence + e-mail) |
+| Réponse de Vanlife | le client | quand l'équipe répond depuis le back-office |
+| Message du client · Annulation par le client | l'équipe Vanlife | depuis l'espace client |
+
+Chaque e-mail au client contient un bouton « Suivre ma demande » (lien personnel). L'adresse du site dans ces liens
+vient de `SITE_URL` (par défaut http://localhost:5173).
 
 **En développement, aucun e-mail ne part sur internet** : ils sont capturés par Mailpit → **http://localhost:8025**.
 
@@ -114,8 +127,8 @@ d'envoi : Brevo, Resend, Mailjet…), `EMAIL_EXPEDITEUR` (adresse d'un domaine v
 prisma/schema.prisma        tables ; prisma/migrations/ : historique SQL ; prisma/seed.ts : remplissage
 src/server.ts               démarrage ; src/app.ts : assemblage (testable sans réseau)
 src/routes/                 adresses HTTP et contrôle de forme des requêtes (admin.ts : back-office)
-src/auth/                   mots de passe (Argon2id) et sessions
-src/services/               règles métier (séjours, départs, demandes) ; services/admin/ : back-office
+src/auth/                   mots de passe (Argon2id), sessions, liens personnels de suivi
+src/services/               règles métier (séjours, départs, demandes, suivi.ts : espace client) ; services/admin/ : back-office
 scripts/creer-utilisateur.ts création d'un compte du back-office
 src/emails/                 contenu des e-mails (modeles.ts), file d'envoi (file.ts), envoi SMTP
 tests/                      tests de l'API (base vanlife_test, « aujourd'hui » fixé au 10/01/2027)

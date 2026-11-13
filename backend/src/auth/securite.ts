@@ -46,7 +46,7 @@ export async function authentifier(prisma: PrismaClient, email: string, motDePas
 // ---------- Sessions ----------
 
 /** La base ne garde que l'empreinte du jeton. */
-const empreinteJeton = (jeton: string) => createHash('sha256').update(jeton).digest('hex')
+export const empreinteJeton = (jeton: string) => createHash('sha256').update(jeton).digest('hex')
 
 /** Crée une session et renvoie le jeton à placer dans le cookie (256 bits aléatoires). */
 export async function ouvrirSession(prisma: PrismaClient, utilisateurId: string, maintenant: Date): Promise<string> {

@@ -92,7 +92,7 @@ describe('Page principale', () => {
   it('chaque photo du programme et de la galerie a une alternative textuelle', async () => {
     rendreApp()
     const programme = await screen.findByRole('region', { name: /programme en 5 jours/i })
-    const photos = within(programme).getAllByRole('img')
+    const photos = [...programme.querySelectorAll('img')]
     expect(photos).toHaveLength(5)
     for (const img of photos) expect(img.getAttribute('alt')?.length).toBeGreaterThan(15)
     expect(within(screen.getByRole('region', { name: /en images/i })).getAllByRole('button', { name: /Agrandir/ })).toHaveLength(8)
@@ -102,7 +102,7 @@ describe('Page principale', () => {
     rendreApp()
     expect(screen.getByText(MENTION_DEMO)).toBeTruthy()
     const programme = await screen.findByRole('region', { name: /programme en 5 jours/i })
-    expect(within(programme).getAllByRole('listitem')).toHaveLength(5)
+    expect(programme.querySelectorAll('ol.programme > li')).toHaveLength(5)
     expect(screen.getAllByText(/1\s390\s€/).length).toBeGreaterThan(0)
     expect(screen.getByRole('heading', { name: 'Inclus dans le prix' })).toBeTruthy()
     expect(screen.getByRole('heading', { name: 'À prévoir en plus' })).toBeTruthy()
@@ -116,6 +116,55 @@ describe('Page principale', () => {
     serveur.resetHandlers() // le serveur répond de nouveau
     await userEvent.setup().click(screen.getByRole('button', { name: 'Réessayer' }))
     expect(await screen.findByRole('heading', { level: 2, name: 'Bretagne Sauvage' })).toBeTruthy()
+  })
+})
+
+describe('Contenu détaillé du séjour', () => {
+  it('carte du circuit : deux vues décrites pour les lecteurs d’écran, distance totale', async () => {
+    rendreApp()
+    const programme = await screen.findByRole('region', { name: /programme en 5 jours/i })
+    expect(within(programme).getByRole('img', { name: /Vue d'ensemble du trajet/ })).toBeTruthy()
+    expect(within(programme).getByRole('img', { name: /^Les étapes sur la presqu'île de Crozon/ })).toBeTruthy()
+    expect(programme.textContent).toContain('Environ 645 km de route')
+    expect(programme.textContent).toContain('ne suit pas les routes')
+  })
+
+  it('programme détaillé : route, nuit (à confirmer) et activités pour chaque jour', async () => {
+    rendreApp()
+    const programme = await screen.findByRole('region', { name: /programme en 5 jours/i })
+    const jours = [...programme.querySelectorAll('ol.programme > li')] as HTMLElement[]
+    expect(jours[0].textContent).toContain('235 km · environ 2 h 50')
+    expect(jours[0].textContent).toContain('Secteur Crozon – Morgat')
+    expect(within(jours[0]).getByText('à confirmer')).toBeTruthy()
+    expect(jours[1].textContent).toContain('tour Vauban')
+    expect(jours[4].textContent).toContain('Retour à la maison')
+  })
+
+  it('fiche du van : équipements, marqués comme indicatifs', async () => {
+    rendreApp()
+    const van = await screen.findByRole('region', { name: 'Votre van' })
+    for (const categorie of ['Couchage', 'Cuisine', 'Eau', 'Chauffage']) expect(within(van).getByText(categorie)).toBeTruthy()
+    expect(within(van).getByText('Équipement indicatif — modèle à confirmer')).toBeTruthy()
+    expect(within(van).getByText(/Photo d'illustration/)).toBeTruthy()
+  })
+
+  it('questions fréquentes : réponses repliées, ouvertes au clic, règles non validées signalées', async () => {
+    const user = userEvent.setup()
+    rendreApp()
+    const faq = await screen.findByRole('region', { name: 'Questions fréquentes' })
+    const questions = faq.querySelectorAll('details')
+    expect(questions).toHaveLength(9)
+    const permis = within(faq).getByText('Quel permis faut-il pour conduire le van ?')
+    expect((permis.closest('details') as HTMLDetailsElement).open).toBe(false)
+    await user.click(permis)
+    expect((permis.closest('details') as HTMLDetailsElement).open).toBe(true)
+    expect(within(faq).getAllByText('À confirmer par Vanlife').length).toBeGreaterThan(0)
+  })
+
+  it('le menu mène au van et à la FAQ', () => {
+    rendreApp()
+    expect(screen.getByRole('link', { name: 'Le van' }).getAttribute('href')).toBe('#van')
+    expect(screen.getByRole('link', { name: 'FAQ' }).getAttribute('href')).toBe('#faq')
   })
 })
 
@@ -261,6 +310,8 @@ describe('Récapitulatif puis envoi au serveur', () => {
     expect(texte).toMatch(/Ce n'est pas encore une réservation/)
     expect(texte).toContain("Un e-mail récapitulatif vous est envoyé à l'adresse camille@exemple.fr")
     expect(texte).not.toMatch(/simul/i)
+    // Lien personnel vers l'espace client.
+    expect(within(screen.getByRole('main')).getByRole('link', { name: 'Suivre ma demande' }).getAttribute('href')).toBe('#/suivi/VL-2027-0001/secret-de-test')
     expect(window.scrollTo).toHaveBeenCalled()
   })
 

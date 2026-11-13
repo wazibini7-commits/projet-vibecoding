@@ -8,6 +8,7 @@
     "node": ">=18.18"
   },
   "scripts": {
+    "demarrer": "node scripts/demarrer.mjs",
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",

@@ -17,42 +17,75 @@ datasource db {
 // ---------- Offre ----------
 
 model Sejour {
-  id                 String          @id // identifiant lisible, ex. « bretagne-sauvage »
+  id                 String              @id // identifiant lisible, ex. « bretagne-sauvage »
   nom                String
   accroche           String
   destination        String
-  dureeJours         Int             @map("duree_jours")
-  dureeNuits         Int             @map("duree_nuits")
+  dureeJours         Int                 @map("duree_jours")
+  dureeNuits         Int                 @map("duree_nuits")
   public             String
-  nombreVoyageurs    Int             @map("nombre_voyageurs")
-  villeDepart        String          @map("ville_depart")
-  villeRetour        String          @map("ville_retour")
-  prixCentimes       Int             @map("prix_centimes") // prix pour l'ensemble des voyageurs
-  devise             String          @default("EUR")
-  prixAConfirmer     Boolean         @default(true) @map("prix_a_confirmer")
-  elementsAConfirmer String[]        @map("elements_a_confirmer")
-  publie             Boolean         @default(false) // visible sur le site public
+  nombreVoyageurs    Int                 @map("nombre_voyageurs")
+  villeDepart        String              @map("ville_depart")
+  villeRetour        String              @map("ville_retour")
+  prixCentimes       Int                 @map("prix_centimes") // prix pour l'ensemble des voyageurs
+  devise             String              @default("EUR")
+  prixAConfirmer     Boolean             @default(true) @map("prix_a_confirmer")
+  elementsAConfirmer String[]            @map("elements_a_confirmer")
+  presentationVan    String              @default("") @map("presentation_van")
+  publie             Boolean             @default(false) // visible sur le site public
   programme          JourProgramme[]
+  questions          QuestionFrequente[]
+  equipementsVan     EquipementVan[]
   prestations        Prestation[]
   departs            Depart[]
-  creeLe             DateTime        @default(now()) @map("cree_le")
-  modifieLe          DateTime        @updatedAt @map("modifie_le")
+  creeLe             DateTime            @default(now()) @map("cree_le")
+  modifieLe          DateTime            @updatedAt @map("modifie_le")
 
   @@map("sejours")
 }
 
 model JourProgramme {
-  id          Int     @id @default(autoincrement())
-  sejourId    String  @map("sejour_id")
-  sejour      Sejour  @relation(fields: [sejourId], references: [id], onDelete: Cascade)
-  jour        Int // 1 = jour du départ
-  titre       String
-  description String
-  lieuNuit    String? @map("lieu_nuit")
-  distanceKm  Int?    @map("distance_km")
+  id                Int      @id @default(autoincrement())
+  sejourId          String   @map("sejour_id")
+  sejour            Sejour   @relation(fields: [sejourId], references: [id], onDelete: Cascade)
+  jour              Int // 1 = jour du départ
+  titre             String
+  description       String
+  lieuNuit          String?  @map("lieu_nuit") // null : pas de nuit (dernier jour)
+  nuitAConfirmer    Boolean  @default(true) @map("nuit_a_confirmer")
+  distanceKm        Int?     @map("distance_km") // trajet du jour, estimé hors arrêts
+  dureeRouteMinutes Int?     @map("duree_route_minutes")
+  activites         String[]
 
   @@unique([sejourId, jour])
   @@map("jours_programme")
+}
+
+/// Question fréquente affichée sur le site (et utilisée par l'assistant).
+model QuestionFrequente {
+  id         Int     @id @default(autoincrement())
+  sejourId   String  @map("sejour_id")
+  sejour     Sejour  @relation(fields: [sejourId], references: [id], onDelete: Cascade)
+  ordre      Int
+  question   String
+  reponse    String
+  aConfirmer Boolean @default(true) @map("a_confirmer") // règle encore à valider par Vanlife
+
+  @@index([sejourId])
+  @@map("questions_frequentes")
+}
+
+/// Équipement du van proposé pour le séjour (indicatif tant que le modèle n'est pas arrêté).
+model EquipementVan {
+  id        Int    @id @default(autoincrement())
+  sejourId  String @map("sejour_id")
+  sejour    Sejour @relation(fields: [sejourId], references: [id], onDelete: Cascade)
+  ordre     Int
+  categorie String
+  detail    String
+
+  @@index([sejourId])
+  @@map("equipements_van")
 }
 
 enum TypePrestation {
@@ -140,6 +173,8 @@ model Demande {
   statut          StatutDemande      @default(RECUE)
   historique      HistoriqueStatut[]
   emails          EmailSortant[]
+  accesSuivi      AccesSuivi[]
+  messages        MessageDemande[]
   creeLe          DateTime           @default(now()) @map("cree_le")
   modifieLe       DateTime           @updatedAt @map("modifie_le")
 
@@ -167,6 +202,7 @@ model Utilisateur {
   actif             Boolean            @default(true)
   changementsStatut HistoriqueStatut[]
   sessions          Session[]
+  messages          MessageDemande[]
   creeLe            DateTime           @default(now()) @map("cree_le")
   derniereConnexion DateTime?          @map("derniere_connexion")
 
@@ -208,7 +244,11 @@ model HistoriqueStatut {
 enum TypeEmail {
   ACCUSE_RECEPTION // au client : « nous avons bien reçu votre demande »
   NOTIFICATION_VANLIFE // à l'équipe Vanlife : « nouvelle demande »
-  CHANGEMENT_STATUT // au client : demande confirmée, refusée… (étape 5)
+  CHANGEMENT_STATUT // au client : demande confirmée, refusée…
+  LIEN_SUIVI // au client : nouveau lien personnel de suivi, à sa demande
+  MESSAGE_VANLIFE // au client : réponse de Vanlife
+  MESSAGE_CLIENT // à l'équipe : message du client depuis son espace
+  ANNULATION_CLIENT // à l'équipe : le client a annulé sa demande
 
   @@map("type_email")
 }
@@ -244,4 +284,41 @@ model EmailSortant {
   @@index([statut, prochaineTentative])
   @@index([demandeId])
   @@map("emails_sortants")
+}
+
+// ---------- Espace client ----------
+
+/// Lien personnel de suivi (« lien magique ») envoyé par e-mail au client. Comme pour les sessions,
+/// la base ne garde que l'empreinte SHA-256 du secret. Valable jusqu'à 30 jours après le retour du séjour.
+model AccesSuivi {
+  id        String   @id // empreinte du secret
+  demandeId String   @map("demande_id") @db.Uuid
+  demande   Demande  @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  creeLe    DateTime @default(now()) @map("cree_le")
+  expireLe  DateTime @map("expire_le")
+
+  @@index([demandeId])
+  @@map("acces_suivi")
+}
+
+enum AuteurMessage {
+  CLIENT
+  VANLIFE
+
+  @@map("auteur_message")
+}
+
+/// Échange entre le client (depuis son espace de suivi) et l'équipe Vanlife (depuis le back-office).
+model MessageDemande {
+  id        Int           @id @default(autoincrement())
+  demandeId String        @map("demande_id") @db.Uuid
+  demande   Demande       @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  auteur    AuteurMessage
+  auteurId  String?       @map("auteur_id") @db.Uuid // membre de l'équipe (null pour le client)
+  equipier  Utilisateur?  @relation(fields: [auteurId], references: [id], onDelete: SetNull)
+  texte     String
+  creeLe    DateTime      @default(now()) @map("cree_le")
+
+  @@index([demandeId])
+  @@map("messages_demandes")
 }

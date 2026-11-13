@@ -1,6 +1,7 @@
 import { MARQUE } from '../../data/marque'
 import { TOUS_LES_MEDIAS, VIDEO_TAS_DE_POIS } from '../../data/medias'
 import { MENTION_DEMO } from '../../data/sejour'
+import { ROUTE_SUIVI } from '../../utils/navigation'
 
 /** Pied de page : marque, rappel du statut de démonstration, crédits des photographies (obligatoires). */
 export default function Footer() {
@@ -19,6 +20,7 @@ export default function Footer() {
             Les demandes envoyées sont enregistrées par Vanlife, sans engagement ni paiement.
             Utilisez des coordonnées fictives pendant les essais.
           </p>
+          <p><a href={ROUTE_SUIVI}>Suivre ma demande</a></p>
         </div>
       </div>
 

@@ -4,8 +4,11 @@ import {
   COMMENTAIRE_LONGUEUR_MAX, LIBELLES_STATUT, NOTE_LONGUEUR_MAX, STATUTS, TRANSITIONS, transitionPermise,
   type ChangementStatut, type DetailDemande, type FiltresDemandes, type PageDemandes, type UtilisateurConnecte,
 } from '../../../../src/domain/admin'
-import type { DemandeReservation, StatutDemande } from '../../../../src/domain/types'
-import { modeleChangementStatut } from '../../emails/modeles'
+import { MESSAGE_SUIVI_LONGUEUR_MAX } from '../../../../src/domain/suivi'
+import type { StatutDemande } from '../../../../src/domain/types'
+import { modeleChangementStatut, modeleMessageVanlife } from '../../emails/modeles'
+import { creerAccesSuivi, lienSuivi } from '../../auth/suivi'
+import { AVEC_CLIENT_ET_SEJOUR, prenomEquipier, versDemandeReservation } from '../vueDemande'
 import { versIso } from '../../dates'
 
 export const PAR_PAGE = 25
@@ -68,6 +71,7 @@ const AVEC_TOUT = {
   depart: { include: { sejour: true } },
   historique: { orderBy: { id: 'asc' }, include: { auteur: { select: { nom: true } } } },
   emails: { orderBy: { id: 'asc' } },
+  messages: { orderBy: { id: 'asc' }, include: { equipier: { select: { nom: true } } } },
 } satisfies Prisma.DemandeInclude
 
 export async function lireDemande(prisma: PrismaClient, reference: string): Promise<DetailDemande | null> {
@@ -103,6 +107,9 @@ export async function lireDemande(prisma: PrismaClient, reference: string): Prom
       envoyeLe: e.envoyeLe?.toISOString() ?? null,
       derniereErreur: e.derniereErreur,
     })),
+    messages: d.messages.map((m) => ({
+      auteur: m.auteur, nom: m.auteur === 'VANLIFE' ? m.equipier?.nom ?? null : null, texte: m.texte, le: m.creeLe.toISOString(),
+    })),
     transitionsPossibles: TRANSITIONS[d.statut],
   }
 }
@@ -123,6 +130,7 @@ export async function changerStatut(
   changement: ChangementStatut,
   auteur: UtilisateurConnecte,
   maintenant: Date,
+  siteUrl: string,
 ): Promise<ResultatChangement> {
   const commentaire = changement.commentaire?.trim() || null
   if (commentaire && commentaire.length > COMMENTAIRE_LONGUEUR_MAX) {
@@ -131,7 +139,7 @@ export async function changerStatut(
 
   type ResultatTransaction = Exclude<ResultatChangement, { type: 'ok' }> | { type: 'ok' }
   const resultat = await prisma.$transaction(async (tx): Promise<ResultatTransaction> => {
-    const d = await tx.demande.findUnique({ where: { reference }, include: { client: true, depart: { include: { sejour: true } } } })
+    const d = await tx.demande.findUnique({ where: { reference }, include: AVEC_CLIENT_ET_SEJOUR })
     if (!d) return { type: 'introuvable' }
     if (d.statut === changement.statut) {
       return { type: 'invalide', message: 'La demande a déjà ce statut.' }
@@ -158,21 +166,9 @@ export async function changerStatut(
     })
 
     if (changement.informerClient && changement.statut !== 'RECUE') {
-      const pourEmail: DemandeReservation = {
-        reference: d.reference,
-        statut: changement.statut,
-        creeeLe: d.creeLe.toISOString(),
-        sejour: {
-          id: d.depart.sejour.id, nom: d.depart.sejour.nom,
-          jours: d.depart.sejour.dureeJours, nuits: d.depart.sejour.dureeNuits,
-          nombreVoyageurs: d.nombreVoyageurs, villeDepart: d.depart.sejour.villeDepart,
-          villeRetour: d.depart.sejour.villeRetour, prixIndicatif: d.prixCentimes / 100,
-        },
-        voyageur: { prenom: d.client.prenom, email: d.client.email },
-        dateDepart: versIso(d.depart.date),
-        dateRetour: versIso(d.dateRetour),
-      }
-      const contenu = modeleChangementStatut(pourEmail, changement.statut, commentaire)
+      const pourEmail = { ...versDemandeReservation(d), statut: changement.statut }
+      const jeton = await creerAccesSuivi(tx, d.id, d.dateRetour, maintenant)
+      const contenu = modeleChangementStatut(pourEmail, changement.statut, commentaire, lienSuivi(siteUrl, d.reference, jeton))
       await tx.emailSortant.create({
         data: { type: 'CHANGEMENT_STATUT', demandeId: d.id, destinataire: d.client.email, ...contenu },
       })
@@ -182,6 +178,36 @@ export async function changerStatut(
 
   if (resultat.type !== 'ok') return resultat
   return { type: 'ok', demande: (await lireDemande(prisma, reference))!, emailEnFile: changement.informerClient }
+}
+
+/**
+ * Réponse de l'équipe au client : enregistrée dans l'échange, et envoyée par e-mail au client
+ * avec un lien personnel pour répondre. Signée du prénom de la personne seulement.
+ */
+export async function repondreAuClient(
+  prisma: PrismaClient,
+  reference: string,
+  texteSaisi: string,
+  auteur: UtilisateurConnecte,
+  maintenant: Date,
+  siteUrl: string,
+): Promise<{ type: 'ok'; demande: DetailDemande } | { type: 'introuvable' } | { type: 'invalide'; message: string }> {
+  const texte = texteSaisi.trim()
+  if (!texte) return { type: 'invalide', message: 'Écrivez votre message.' }
+  if (texte.length > MESSAGE_SUIVI_LONGUEUR_MAX) {
+    return { type: 'invalide', message: `Le message ne doit pas dépasser ${MESSAGE_SUIVI_LONGUEUR_MAX} caractères.` }
+  }
+  const trouvee = await prisma.$transaction(async (tx) => {
+    const d = await tx.demande.findUnique({ where: { reference }, include: AVEC_CLIENT_ET_SEJOUR })
+    if (!d) return false
+    await tx.messageDemande.create({ data: { demandeId: d.id, auteur: 'VANLIFE', auteurId: auteur.id, texte, creeLe: maintenant } })
+    const jeton = await creerAccesSuivi(tx, d.id, d.dateRetour, maintenant)
+    const contenu = modeleMessageVanlife(versDemandeReservation(d), texte, prenomEquipier(auteur.nom), lienSuivi(siteUrl, d.reference, jeton))
+    await tx.emailSortant.create({ data: { type: 'MESSAGE_VANLIFE', demandeId: d.id, destinataire: d.client.email, ...contenu } })
+    return true
+  })
+  if (!trouvee) return { type: 'introuvable' }
+  return { type: 'ok', demande: (await lireDemande(prisma, reference))! }
 }
 
 export async function modifierNote(prisma: PrismaClient, reference: string, note: string): Promise<'ok' | 'introuvable' | 'trop-longue'> {

@@ -9,12 +9,15 @@ import type { PrismaClient } from '@prisma/client'
 import { routesSejours } from './routes/sejours'
 import { routesDemandes } from './routes/demandes'
 import { routesAdmin } from './routes/admin'
+import { routesSuivi } from './routes/suivi'
 
 export interface OptionsApp {
   prisma: PrismaClient
   /** Heure courante — injectable pour que les tests ne dépendent pas du calendrier. */
   horloge: () => Date
   originesAutorisees: string[]
+  /** Adresse publique du site (liens « Suivre ma demande » dans les e-mails), ex. https://vanlife.bzh */
+  siteUrl: string
   /** Cookie de session réservé au HTTPS (vrai en production). */
   cookieSecurise: boolean
   /** Nombre maximal de demandes envoyées par minute depuis une même adresse IP (anti-spam). */
@@ -70,6 +73,7 @@ export async function construireApp(options: OptionsApp) {
 
   await app.register(routesSejours, options)
   await app.register(routesDemandes, options)
+  await app.register(routesSuivi, options)
   await app.register(routesAdmin, options)
   return app
 }

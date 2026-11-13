@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ajouterJours, aujourdhuiIso, estDateIsoValide, formaterDateFr } from './dates'
-import { formaterDuree, formaterListe, formaterPrix } from './format'
+import { formaterDuree, formaterDureeRoute, formaterListe, formaterPrix } from './format'
 
 describe('dates', () => {
   it('estDateIsoValide', () => {
@@ -29,6 +29,13 @@ describe('format', () => {
   it('formaterListe', () => {
     expect(formaterListe(['Partenaires', 'Tarifs', 'Nuitées'])).toBe('partenaires, tarifs et nuitées')
     expect(formaterListe(['Tarifs'])).toBe('tarifs')
+  })
+  it('formaterDureeRoute', () => {
+    expect(formaterDureeRoute(170)).toBe('2 h 50')
+    expect(formaterDureeRoute(95)).toBe('1 h 35')
+    expect(formaterDureeRoute(120)).toBe('2 h')
+    expect(formaterDureeRoute(30)).toBe('30 min')
+    expect(formaterDureeRoute(65)).toBe('1 h 05')
   })
   it('formaterDuree', () => {
     expect(formaterDuree(5, 4)).toBe('5 jours / 4 nuits')

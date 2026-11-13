@@ -35,15 +35,23 @@ npm run utilisateur:creer -- --email prenom@vanlife.example --nom "Prénom Nom"
                             # compte du back-office (mot de passe demandé dans le terminal)
 ```
 
-## 3. Lancement — deux terminaux
+## 3. Lancement — une seule commande
 
-| Terminal | Commande | Adresse |
-|---|---|---|
-| 1 — serveur | `cd backend` puis `npm run dev` | API sur http://localhost:3100 |
-| 2 — site | `npm run dev` (à la racine) | **http://localhost:5173** |
+```bash
+npm run demarrer
+```
 
-Le site redirige ses appels `/api` vers le serveur (réglage dans `vite.config.ts`).
-Après un redémarrage de l'ordinateur : démarrer Docker Desktop, puis `npm run db:up` dans `backend/`.
+Elle vérifie les prérequis (Docker démarré, dépendances, `.env`), démarre PostgreSQL et Mailpit, applique les
+migrations en attente (sans rien effacer), puis lance l'API et le site. Quand « ✔ Tout est prêt » s'affiche :
+
+| | Adresse |
+|---|---|
+| Site | **http://localhost:5173** |
+| Back-office | http://localhost:5173/#/admin |
+| Suivre une demande | http://localhost:5173/#/suivi |
+| E-mails envoyés (Mailpit) | **http://localhost:8025** : les e-mails arrivent ici, jamais dans une vraie boîte |
+
+`Ctrl+C` arrête l'API et le site. Lancement séparé possible : `cd backend && npm run dev` puis `npm run dev`.
 
 - **Sur un smartphone** (même réseau Wi-Fi) : `npm run dev -- --host`, puis ouvrir l'adresse *Network* affichée.
 - **Simuler un smartphone sur ordinateur** : `F12` puis `Ctrl+Shift+M`, choisir une largeur de 390 px.
@@ -57,24 +65,28 @@ Après un redémarrage de l'ordinateur : démarrer Docker Desktop, puis `npm run
 | Commande | Rôle |
 |---|---|
 | `npm run lint` | qualité du code (ESLint) |
-| `npm test` | 124 tests du site : règles de validation, liste des départs, parcours complet avec un faux serveur (pannes comprises), back-office, photos et crédits |
+| `npm test` | 137 tests du site : règles de validation, liste des départs, parcours complet avec un faux serveur (pannes comprises), espace client, back-office, photos et crédits |
 | `npm run build` | contrôle TypeScript + compilation de production |
 | `npm run verifier` | les trois commandes ci-dessus d'un coup |
-| `cd backend && npm run verifier` | 92 tests de l'API, des e-mails et du back-office (sécurité comprise) sur une base de test séparée + contrôle TypeScript |
+| `cd backend && npm run verifier` | 107 tests de l'API, des e-mails, de l'espace client et du back-office (sécurité comprise) sur une base de test séparée + contrôle TypeScript |
 | `npm run demo` | parcours complet dans Chrome/Edge à 390 px et 1366 px, avec captures dans `docs/captures/` (serveur et site lancés). **Enregistre de vraies demandes** dans la base de développement (adresses `camille.demo+…@exemple.fr`) |
 
 ## 5. Parcours à présenter
 
 0. **La marque** — accueil immersif VANLIFE.BZH (« Voyagez autrement. Vivez la route. »), puis le concept Vanlife.
 1. **Découvrir** — le séjour pilote Bretagne Sauvage, chargé depuis la base : durée, public, départ/retour, prix indicatif.
-2. **Comprendre** — programme J1 à J5, prix indicatif 1 390 € pour 2, inclus / à prévoir.
+2. **Comprendre** — carte du circuit (≈ 645 km), programme J1 à J5 (route, nuit, activités), fiche du van,
+   prix indicatif 1 390 € pour 2, inclus / à prévoir, questions fréquentes. Les points non validés portent « à confirmer ».
 3. **Demander** — bouton « Demande » : page de demande (`#/demande`), liste des départs avec les vans restants
    (départs complets grisés), prénom, e-mail. Essayer : demande vide, e-mail `camille@exemple`.
 4. **Vérifier** — récapitulatif (circuit, dates aller/retour, coordonnées), bouton *Modifier*.
 5. **Envoyer** — la demande est enregistrée : référence `VL-AAAA-NNNN`, réservation à confirmer par Vanlife.
    Montrer ensuite l'e-mail reçu dans Mailpit (http://localhost:8025) et la place en moins dans la liste des départs.
-6. **Traiter (back-office)** — `#/admin` : la demande apparaît « Reçue » ; l'ouvrir, la confirmer avec un commentaire
-   → e-mail « Votre séjour est confirmé » dans Mailpit, historique signé. Fermer un départ → il disparaît du site.
+6. **Suivre (espace client)** — bouton « Suivre ma demande » sur la confirmation ou dans l'e-mail : étapes, écrire à
+   Vanlife, annuler. Lien perdu : `#/suivi`, référence + e-mail → nouveau lien par e-mail.
+7. **Traiter (back-office)** — `#/admin` : la demande apparaît « Reçue » ; l'ouvrir, la confirmer avec un commentaire
+   → e-mail « Votre séjour est confirmé » dans Mailpit, historique signé ; répondre au message du client.
+   Fermer un départ → il disparaît du site.
 
 ## 6. Organisation du code
 
@@ -83,12 +95,14 @@ src/                        SITE (React)
 ├── api/
 │   ├── client.ts           Appels au serveur (séjour, départs, envoi, suivi) et messages en cas de panne
 │   └── requetes.ts         Chargement des données dans les composants (TanStack Query : cache, nouvel essai)
-├── data/sejour.ts          Contenu du circuit : source du remplissage de la base (npm run db:seed)
+├── data/sejour.ts          Contenu du circuit (programme détaillé, FAQ, van) : source du remplissage de la base
+├── data/carte.ts           Coordonnées GPS des étapes pour la carte SVG (aucun service de cartographie externe)
 ├── data/marque.ts          Identité Vanlife : nom, signature, présentation, principes
 ├── data/medias.ts          Catalogue des photos/vidéo : fichier, texte alternatif, lieu, auteur, licence
 ├── domain/                 Logique métier, PARTAGÉE avec le serveur
 │   ├── types.ts            Types du séjour, de la demande et contrat de l'API
 │   ├── admin.ts            Back-office : statuts, changements autorisés, contrat de l'API d'administration
+│   ├── suivi.ts            Espace client : étapes, annulation, messages, contrat de l'API de suivi
 │   └── validation.ts       Règles et messages d'erreur du formulaire (appliqués aussi par le serveur)
 ├── utils/                  Dates (calculs sans décalage de fuseau), formats (prix, durée), navigation
 ├── components/
@@ -96,7 +110,7 @@ src/                        SITE (React)
 │   ├── sejour/             Concept Vanlife, séjour (chargé depuis l'API), programme, prix, galerie
 │   ├── demande/            Formulaire, liste des départs, résumé d'erreurs, récapitulatif
 │   └── ui/                 Briques réutilisables : bouton, champ, liste, chargement/erreur, photo, vidéo…
-├── pages/                  Accueil, page de demande (#/demande, chargée à la demande), confirmation
+├── pages/                  Accueil, demande (#/demande), confirmation, espace client (#/suivi) — chargées à la demande
 ├── admin/                  Back-office (#/admin, chargé à part) : connexion, demandes, départs, compte
 ├── test/serveurFactice.ts  Faux serveur (MSW) pour les tests de l'interface
 └── styles/global.css       Charte graphique et responsive (mobile d'abord)
@@ -128,6 +142,9 @@ docs/                       Fiche de restitution, journal, captures d'écran
 **E-mails fiables** : ils sont enregistrés avec la demande puis envoyés en arrière-plan, avec de nouveaux essais
 si la messagerie est en panne : une demande n'échoue jamais à cause d'un e-mail, et aucun e-mail n'est perdu.
 
+**Espace client sûr** : on y accède par un lien personnel secret reçu par e-mail (« lien magique »). La référence
+et l'e-mail seuls ne donnent accès à rien : ils permettent seulement de recevoir un nouveau lien dans sa boîte mail.
+
 **Pannes** : si le serveur ne répond pas, le site l'explique et propose « Réessayer » ; la saisie n'est jamais perdue.
 
 **Navigation** : chaque page a sa propre adresse après le « # » (`#/` accueil, `#/demande` demande).
@@ -153,6 +170,6 @@ Serveur : Fastify 5 · PostgreSQL 18 (Docker) · Prisma 6 · Nodemailer + Mailpi
 
 ## 9. Pas encore réalisé
 
-Page de suivi pour le client (l'API existe déjà : `POST /api/demandes/suivi`), paiement, mise en ligne.
+Paiement d'un acompte, mise en ligne, conformité RGPD complète (purge des données anciennes, mentions légales).
 
 Voir aussi : [`docs/FICHE_RESTITUTION.md`](docs/FICHE_RESTITUTION.md) et [`backend/README.md`](backend/README.md).

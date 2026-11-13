@@ -36,6 +36,7 @@ function demande(reference: string, prenom: string, statut: StatutDemande): Deta
       type: 'ACCUSE_RECEPTION', destinataire: `${prenom.toLowerCase()}@exemple.fr`, sujet: 'Votre demande', statut: 'ENVOYE',
       tentatives: 1, creeLe: '2027-01-10T10:00:00.000Z', envoyeLe: '2027-01-10T10:00:05.000Z', derniereErreur: null,
     }],
+    messages: [],
     transitionsPossibles: TRANSITIONS[statut],
   }
 }
@@ -81,6 +82,13 @@ const serveur = setupServer(
     d.historique.push({ ancienStatut: d.statut, nouveauStatut: corps.statut, le: '2027-01-11T09:00:00.000Z', auteur: etat.connecte.nom, commentaire: corps.commentaire || null })
     d.statut = corps.statut
     d.transitionsPossibles = TRANSITIONS[corps.statut]
+    return HttpResponse.json(d)
+  }),
+  http.post(api('/demandes/:reference/messages'), async ({ params, request }) => {
+    if (!etat.connecte) return nonConnecte()
+    const { texte } = (await request.json()) as { texte: string }
+    const d = etat.demandes.find((x) => x.reference === params.reference)!
+    d.messages.push({ auteur: 'VANLIFE', nom: etat.connecte.nom, texte, le: '2027-01-11T10:00:00.000Z' })
     return HttpResponse.json(d)
   }),
   http.get(api('/sejours/:id/departs'), () => (etat.connecte ? HttpResponse.json(etat.departs) : nonConnecte())),
@@ -274,6 +282,19 @@ describe('détail d’une demande', () => {
     ouvrir('/demandes/VL-2027-0001')
     expect(await screen.findByText(/Cette demande est close \(refusée\)/)).toBeTruthy()
     expect(screen.queryByRole('group', { name: 'Nouveau statut' })).toBeNull()
+  })
+
+  it('échange avec le client : lit son message et lui répond', async () => {
+    etat.demandes[1].messages = [{ auteur: 'CLIENT', nom: null, texte: 'Peut-on venir avec un chien ?', le: '2027-01-11T09:00:00.000Z' }]
+    const user = ouvrir('/demandes/VL-2027-0001')
+    const echange = await screen.findByRole('region', { name: 'Échange avec le client' })
+    expect(within(echange).getByText('Peut-on venir avec un chien ?')).toBeTruthy()
+    expect(within(echange).getByText(/^Camille —/)).toBeTruthy()
+    await user.type(screen.getByLabelText('Répondre au client'), 'Oui, avec plaisir !')
+    await user.click(screen.getByRole('button', { name: 'Envoyer la réponse' }))
+    expect(await screen.findByText('Réponse envoyée par e-mail à camille@exemple.fr.')).toBeTruthy()
+    expect(within(echange).getByText('Oui, avec plaisir !')).toBeTruthy()
+    expect(within(echange).getByText(/^Claire Martin —/)).toBeTruthy()
   })
 
   it('référence inconnue : message clair', async () => {

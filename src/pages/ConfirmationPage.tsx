@@ -4,12 +4,13 @@ import { useEffect, useRef } from 'react'
 import Header from '../components/layout/Header'
 import ListeRecap from '../components/ui/ListeRecap'
 import Alerte from '../components/ui/Alerte'
-import { Bouton } from '../components/ui/Bouton'
+import { Bouton, LienBouton } from '../components/ui/Bouton'
 import { lignesConfirmation } from '../components/demande/lignesConfirmation'
-import type { DemandeReservation } from '../domain/types'
+import type { DemandeEnregistree } from '../domain/types'
+import { cheminSuivi } from '../domain/suivi'
 
 interface ConfirmationPageProps {
-  demande: DemandeReservation
+  demande: DemandeEnregistree
   onRetour: () => void
 }
 
@@ -35,7 +36,7 @@ export default function ConfirmationPage({ demande, onRetour }: ConfirmationPage
             <Alerte type="info">
               <p>
                 Votre référence : <strong className="reference">{demande.reference}</strong>.
-                Notez-la : elle vous sera demandée pour suivre votre demande.
+                Depuis votre espace, vous pouvez suivre votre demande, l'annuler ou écrire à Vanlife.
               </p>
             </Alerte>
 
@@ -46,7 +47,8 @@ export default function ConfirmationPage({ demande, onRetour }: ConfirmationPage
 
             <h2 className="h3 suite-titre">Et ensuite ?</h2>
             <p>
-              Un e-mail récapitulatif vous est envoyé à l'adresse <strong>{demande.voyageur.email}</strong>.
+              Un e-mail récapitulatif vous est envoyé à l'adresse <strong>{demande.voyageur.email}</strong>,
+              avec votre lien personnel de suivi.
               Pensez à vérifier vos courriers indésirables si vous ne le voyez pas dans quelques minutes.
             </p>
             <p>
@@ -54,7 +56,10 @@ export default function ConfirmationPage({ demande, onRetour }: ConfirmationPage
               puis vous recontacte. Aucun paiement n'est demandé à ce stade.
             </p>
 
-            <Bouton onClick={onRetour}>Retour au circuit</Bouton>
+            <div className="actions">
+              <LienBouton href={cheminSuivi(demande.reference, demande.jetonSuivi)}>Suivre ma demande</LienBouton>
+              <Bouton variante="secondaire" onClick={onRetour}>Retour au circuit</Bouton>
+            </div>
           </div>
         </section>
       </main>

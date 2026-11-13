@@ -16,7 +16,8 @@ import {
   DUREE_SESSION_MS, authentifier, erreurMotDePasse, fermerAutresSessions, fermerSession, hacherMotDePasse,
   lireSession, ouvrirSession, verifierMotDePasse,
 } from '../auth/securite'
-import { changerStatut, exporterCsv, listerDemandes, lireDemande, modifierNote } from '../services/admin/demandes'
+import { changerStatut, exporterCsv, listerDemandes, lireDemande, modifierNote, repondreAuClient } from '../services/admin/demandes'
+import { MESSAGE_SUIVI_LONGUEUR_MAX } from '../../../src/domain/suivi'
 import { creerDepart, listerDepartsAdmin, modifierDepart } from '../services/admin/departs'
 import type { OptionsApp } from '../app'
 
@@ -190,7 +191,7 @@ export async function routesAdmin(app: FastifyInstance, options: OptionsApp) {
     '/api/admin/demandes/:reference/statut',
     { ...connecte, schema: { params: parametreReference, body: corpsStatut } },
     async (req, rep) => {
-      const r = await changerStatut(prisma, req.params.reference, req.body, req.utilisateur!, horloge())
+      const r = await changerStatut(prisma, req.params.reference, req.body, req.utilisateur!, horloge(), options.siteUrl)
       switch (r.type) {
         case 'ok':
           if (r.emailEnFile) options.emails.declencherEnvoi()
@@ -211,6 +212,24 @@ export async function routesAdmin(app: FastifyInstance, options: OptionsApp) {
       if (r === 'introuvable') return rep.code(404).send({ message: 'Demande introuvable.' })
       if (r === 'trop-longue') return rep.code(400).send({ message: `La note ne doit pas dépasser ${NOTE_LONGUEUR_MAX} caractères.` })
       return lireDemande(prisma, req.params.reference)
+    },
+  )
+
+  app.post<{ Params: { reference: string }; Body: { texte: string } }>(
+    '/api/admin/demandes/:reference/messages',
+    {
+      ...connecte,
+      schema: {
+        params: parametreReference,
+        body: { type: 'object', required: ['texte'], additionalProperties: false, properties: { texte: { type: 'string', maxLength: MESSAGE_SUIVI_LONGUEUR_MAX * 2 } } },
+      },
+    },
+    async (req, rep) => {
+      const r = await repondreAuClient(prisma, req.params.reference, req.body.texte, req.utilisateur!, horloge(), options.siteUrl)
+      if (r.type === 'introuvable') return rep.code(404).send({ message: 'Demande introuvable.' })
+      if (r.type === 'invalide') return rep.code(400).send({ message: r.message })
+      options.emails.declencherEnvoi()
+      return r.demande
     },
   )
 

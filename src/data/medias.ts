@@ -121,6 +121,9 @@ export const PHOTOS_EXPERIENCE: Media[] = [
   }),
 ]
 
+/** Fiche du van : exemple d'intérieur (photo d'illustration, pas le véhicule Vanlife). */
+export const PHOTO_VAN = PHOTOS_EXPERIENCE.find((m) => m.id === 'van-interieur')!
+
 // ---------- Galerie ----------
 
 export const GALERIE: Media[] = [

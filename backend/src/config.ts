@@ -18,6 +18,8 @@ export const config = {
   /** Sites autorisés à appeler l'API depuis un navigateur (CORS). */
   originesAutorisees: liste(process.env.CORS_ORIGINS, ['http://localhost:5173', 'http://localhost:4173']),
   niveauJournal: process.env.LOG_LEVEL ?? 'info',
+  /** Adresse publique du site : utilisée dans les liens envoyés par e-mail. */
+  siteUrl: process.env.SITE_URL ?? 'http://localhost:5173',
   /** À mettre à true en production (site en HTTPS) : le cookie de session n'est alors jamais envoyé en clair. */
   cookieSecurise: process.env.COOKIE_SECURE === 'true',
 

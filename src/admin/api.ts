@@ -72,6 +72,8 @@ export const api = {
   demande: (reference: string) => appeler<DetailDemande>(`/demandes/${encodeURIComponent(reference)}`),
   changerStatut: (reference: string, changement: ChangementStatut) =>
     appeler<DetailDemande>(`/demandes/${encodeURIComponent(reference)}/statut`, envoyer('POST', changement)),
+  repondre: (reference: string, texte: string) =>
+    appeler<DetailDemande>(`/demandes/${encodeURIComponent(reference)}/messages`, envoyer('POST', { texte })),
   modifierNote: (reference: string, noteInterne: string) =>
     appeler<DetailDemande>(`/demandes/${encodeURIComponent(reference)}/note`, envoyer('PUT', { noteInterne })),
   /** Adresse du fichier CSV (téléchargé directement par le navigateur, avec le cookie de session). */

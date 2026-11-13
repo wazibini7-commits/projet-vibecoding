@@ -142,18 +142,15 @@ async function parcours(navigateur, largeur, hauteur, nom) {
   const reference = conf.match(/VL-\d{4}-\d{4}/)?.[0]
   verifier(conf.includes('Bretagne Sauvage') && !!reference, `confirmation : circuit et référence ${reference ?? '(absente)'}`)
   verifier(/réservation à confirmer/.test(conf) && /pas encore une réservation/.test(conf), 'confirmation : demande reçue, réservation à confirmer')
-  const suivi = await page.evaluate(async (ref, mail) => {
-    const r = await fetch('/api/demandes/suivi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference: ref, email: mail }) })
-    return r.ok ? (await r.json()).statut : r.status
-  }, reference, email)
-  verifier(suivi === 'RECUE', `demande bien enregistrée en base (statut : ${suivi})`)
+  const lienSuivi = await page.$eval('.confirmation a.btn-principal', (a) => a.getAttribute('href'))
+  verifier(/^#\/suivi\/VL-\d{4}-\d{4}\/[\w-]{43}$/.test(lienSuivi ?? ''), 'confirmation : lien personnel « Suivre ma demande »')
   verifier(conf.includes('Version de démonstration'), 'confirmation : statut provisoire visible')
   verifier(await page.evaluate(() => window.scrollY === 0), 'confirmation affichée en haut de page')
   await sansDebordement(page, 'confirmation')
   await capture('5-confirmation', true)
 
   // 6. Retour à l'accueil, puis nouvelle demande : formulaire vierge
-  await page.click('.confirmation .btn-principal')
+  await page.click('.confirmation .btn-secondaire') // « Retour au circuit »
   await page.waitForSelector('#hero-titre')
   verifier(await page.evaluate(() => window.scrollY === 0), 'retour au circuit : accueil, en haut de page')
   await page.click('.hero a[href="#/demande"]')
@@ -168,6 +165,15 @@ async function parcours(navigateur, largeur, hauteur, nom) {
   await page.goBack()
   await page.waitForSelector('#demande-titre')
   verifier(true, 'bouton « Précédent » du navigateur : retour à la page de demande')
+  // 8. Espace client : le lien personnel ouvre la demande, enregistrée en base avec le statut « reçue ».
+  await page.goto(new globalThis.URL(lienSuivi, URL).toString(), { waitUntil: 'networkidle0' })
+  await page.waitForSelector('.suivi-etapes')
+  const espace = await page.evaluate(() => document.body.innerText)
+  verifier(espace.includes('Bonjour Camille') && espace.includes(reference), `espace client : demande ${reference} affichée`)
+  verifier(await page.$eval('.suivi-etape-en-cours', (e) => e.innerText.includes('Demande reçue')), 'espace client : étape « Demande reçue » en cours')
+  await sansDebordement(page, 'espace client')
+  await capture('6-espace-client', true)
+
   verifier(erreursConsole.length === 0, 'aucune erreur dans la console' + (erreursConsole.length ? ' : ' + erreursConsole.join(' | ') : ''))
   await page.close()
 }

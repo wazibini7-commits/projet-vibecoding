@@ -2,6 +2,7 @@
 //   - page d'accueil (#/ ou #section)      : la marque Vanlife et le séjour Bretagne Sauvage ;
 //   - page de demande (#/demande)          : formulaire et récapitulatif, chargée à la demande ;
 //   - confirmation (après l'envoi)         : affiche la demande enregistrée ;
+//   - espace client (#/suivi/…)            : suivi d'une demande par lien personnel ;
 //   - back-office (#/admin/…)              : réservé à l'équipe Vanlife, chargé à la demande.
 // La navigation repose sur l'adresse après « # » (voir utils/navigation.ts) : le bouton
 // « Précédent » du navigateur fonctionne, sans bibliothèque ni réglage d'hébergement.
@@ -12,11 +13,12 @@ import Footer from './components/layout/Footer'
 import PageChargement from './components/layout/PageChargement'
 import AccueilPage from './pages/AccueilPage'
 import ConfirmationPage from './pages/ConfirmationPage'
-import type { DemandeReservation } from './domain/types'
+import type { DemandeEnregistree } from './domain/types'
 import { lireRoute, ROUTE_ACCUEIL, type Position } from './utils/navigation'
 
 // Code de la page de demande téléchargé seulement quand on l'ouvre.
 const DemandePage = lazy(() => import('./pages/DemandePage'))
+const SuiviPage = lazy(() => import('./pages/SuiviPage'))
 // Back-office : jamais téléchargé par les visiteurs du site.
 const AdminApp = lazy(() => import('./admin/AdminApp'))
 
@@ -35,7 +37,7 @@ function positionner(ancre?: string) {
 export default function App() {
   const [position, setPosition] = useState<Position>(() => lireRoute(window.location.hash))
   /** Non nul → écran de confirmation de cette demande simulée. */
-  const [demandeEnvoyee, setDemandeEnvoyee] = useState<DemandeReservation | null>(null)
+  const [demandeEnvoyee, setDemandeEnvoyee] = useState<DemandeEnregistree | null>(null)
 
   // Suivi de l'adresse : liens, boutons, « Précédent » / « Suivant » du navigateur.
   useEffect(() => {
@@ -83,6 +85,12 @@ export default function App() {
   let ecran
   if (demandeEnvoyee) {
     ecran = <ConfirmationPage demande={demandeEnvoyee} onRetour={retourAccueil} />
+  } else if (position.page === 'suivi') {
+    ecran = (
+      <Suspense fallback={<PageChargement texte="Chargement de votre espace…" />}>
+        <SuiviPage chemin={position.chemin ?? '/'} />
+      </Suspense>
+    )
   } else if (position.page === 'demande') {
     ecran = (
       <Suspense fallback={<PageChargement texte="Chargement du formulaire de demande…" />}>

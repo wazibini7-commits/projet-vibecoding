@@ -19,7 +19,7 @@ import { PHOTO_SEJOUR } from '../data/medias'
 import { MARQUE } from '../data/marque'
 import { SAISIE_VIDE, validerChamp, validerDemande } from '../domain/validation'
 import type {
-  ChampDemande, DemandeReservation, DemandeSaisie, DemandeValidee, ErreursDemande, ErreursServeur,
+  ChampDemande, DemandeEnregistree, DemandeSaisie, DemandeValidee, ErreursDemande, ErreursServeur,
 } from '../domain/types'
 import { formaterDuree, formaterPrix } from '../utils/format'
 import { ROUTE_ACCUEIL, ROUTE_DEMANDE } from '../utils/navigation'
@@ -32,7 +32,7 @@ function erreursDuFormulaire(erreurs: ErreursServeur): ErreursDemande {
 
 interface DemandePageProps {
   /** Appelée avec la demande enregistrée par le serveur. */
-  onDemandeEnvoyee: (demande: DemandeReservation) => void
+  onDemandeEnvoyee: (demande: DemandeEnregistree) => void
 }
 
 export default function DemandePage({ onDemandeEnvoyee }: DemandePageProps) {

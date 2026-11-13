@@ -1,16 +1,17 @@
-// Enregistrement et suivi des demandes de réservation.
+// Enregistrement des demandes de réservation (le suivi par le client est dans services/suivi.ts).
 // Les règles de saisie (prénom, e-mail, date) sont CELLES DU FRONTEND (src/domain/validation.ts) :
 // mêmes contrôles, mêmes messages, une seule source de vérité.
 // Le serveur ajoute les règles qu'il est seul à pouvoir vérifier : départ existant, places restantes, doublon.
 import { Prisma, StatutDemande, type PrismaClient } from '@prisma/client'
 import type {
-  DateIso, DemandeReservation, EntreeDemande, ErreursServeur, SuiviDemande,
+  DateIso, DemandeEnregistree, DemandeReservation, EntreeDemande, ErreursServeur,
 } from '../../../src/domain/types'
 import { validerDemande } from '../../../src/domain/validation'
 import { ajouterJours } from '../../../src/utils/dates'
 import { versDate, versIso } from '../dates'
 import { STATUTS_ACTIFS } from './sejours'
 import { modeleAccuseReception, modeleNotificationVanlife } from '../emails/modeles'
+import { creerAccesSuivi, lienSuivi } from '../auth/suivi'
 
 export const MESSAGE_LONGUEUR_MAX = 1000
 
@@ -22,10 +23,10 @@ export const MESSAGES_SERVEUR = {
   messageTropLong: `Le message ne doit pas dépasser ${MESSAGE_LONGUEUR_MAX} caractères.`,
 } as const
 
-export type { EntreeDemande, ErreursServeur, SuiviDemande }
+export type { EntreeDemande, ErreursServeur }
 
 export type ResultatEnregistrement =
-  | { type: 'ok'; demande: DemandeReservation }
+  | { type: 'ok'; demande: DemandeEnregistree }
   | { type: 'sejour-inconnu' }
   | { type: 'invalide'; erreurs: ErreursServeur } // saisie incorrecte → 400
   | { type: 'conflit'; erreurs: ErreursServeur } // départ complet ou doublon → 409
@@ -45,7 +46,7 @@ export async function enregistrerDemande(
   entree: EntreeDemande,
   maintenant: Date,
   aujourdhui: DateIso,
-  options: { emailEquipe: string },
+  options: { emailEquipe: string; siteUrl: string },
 ): Promise<ResultatEnregistrement> {
   const sejour = await prisma.sejour.findFirst({ where: { id: entree.sejourId, publie: true } })
   if (!sejour) return { type: 'sejour-inconnu' }
@@ -132,7 +133,9 @@ export async function enregistrerDemande(
 
     // E-mails mis en file DANS la même transaction : si la demande est enregistrée, ses e-mails le sont
     // aussi (et inversement). L'envoi réel se fait ensuite en arrière-plan (src/emails/file.ts).
-    const accuse = modeleAccuseReception(enregistree)
+    // Lien personnel « Suivre ma demande » : dans l'accusé de réception et sur la page de confirmation.
+    const jetonSuivi = await creerAccesSuivi(tx, demande.id, demande.dateRetour, maintenant)
+    const accuse = modeleAccuseReception(enregistree, lienSuivi(options.siteUrl, demande.reference, jetonSuivi))
     const notification = modeleNotificationVanlife(enregistree, message)
     await tx.emailSortant.createMany({
       data: [
@@ -141,33 +144,8 @@ export async function enregistrerDemande(
       ],
     })
 
-    return { type: 'ok', demande: enregistree }
+    return { type: 'ok', demande: { ...enregistree, jetonSuivi } }
   })
-}
-
-/**
- * Suivi d'une demande par le client : il faut la référence ET l'e-mail utilisé.
- * Null dans tous les cas d'échec, sans dire lequel (on ne révèle pas qu'une référence existe).
- */
-export async function suivreDemande(prisma: PrismaClient, reference: string, email: string): Promise<SuiviDemande | null> {
-  const demande = await prisma.demande.findUnique({
-    where: { reference: reference.trim().toUpperCase() },
-    include: {
-      client: { select: { email: true } },
-      depart: { select: { date: true, sejour: { select: { id: true, nom: true } } } },
-      historique: { orderBy: { creeLe: 'asc' }, select: { nouveauStatut: true, creeLe: true } },
-    },
-  })
-  if (!demande || demande.client.email !== email.trim().toLowerCase()) return null
-  return {
-    reference: demande.reference,
-    statut: demande.statut,
-    sejour: demande.depart.sejour,
-    dateDepart: versIso(demande.depart.date),
-    dateRetour: versIso(demande.dateRetour),
-    creeeLe: demande.creeLe.toISOString(),
-    historique: demande.historique.map((h) => ({ statut: h.nouveauStatut, le: h.creeLe.toISOString() })),
-  }
 }
 
 /** Erreur Prisma de contrainte d'unicité (ex. référence déjà prise) — utile pour réessayer. */

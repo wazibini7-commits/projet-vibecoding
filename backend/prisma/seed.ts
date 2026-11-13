@@ -3,8 +3,9 @@
 // - Départs : chaque samedi de la saison 2027 (avril → octobre), 2 vans par départ — HYPOTHÈSE à valider par Vanlife.
 // - Quelques demandes FICTIVES (e-mails @exemple.fr) pour tester les étapes suivantes (API, back-office).
 // Le script peut être relancé sans créer de doublons.
-import { PrismaClient, StatutDemande, TypePrestation } from '@prisma/client'
+import { PrismaClient, StatutDemande } from '@prisma/client'
 import { SEJOUR_BRETAGNE_SAUVAGE as S } from '../../src/data/sejour'
+import { ecrireContenuSejour } from '../src/services/contenuSejour'
 
 const prisma = new PrismaClient()
 
@@ -22,38 +23,7 @@ function samedis(debut: string, fin: string): Date[] {
 }
 
 async function seedSejour() {
-  const donnees = {
-    nom: S.nom,
-    accroche: S.accroche,
-    destination: S.destination,
-    dureeJours: S.duree.jours,
-    dureeNuits: S.duree.nuits,
-    public: S.public,
-    nombreVoyageurs: S.nombreVoyageurs,
-    villeDepart: S.villeDepart,
-    villeRetour: S.villeRetour,
-    prixCentimes: S.prix.montant * 100,
-    devise: S.prix.devise,
-    prixAConfirmer: S.prix.aConfirmer,
-    elementsAConfirmer: S.elementsAConfirmer,
-    publie: true,
-  }
-  await prisma.sejour.upsert({ where: { id: S.id }, create: { id: S.id, ...donnees }, update: donnees })
-
-  // Programme et prestations : remplacés entièrement pour rester alignés sur sejour.ts.
-  await prisma.$transaction([
-    prisma.jourProgramme.deleteMany({ where: { sejourId: S.id } }),
-    prisma.prestation.deleteMany({ where: { sejourId: S.id } }),
-    prisma.jourProgramme.createMany({
-      data: S.programme.map((j) => ({ sejourId: S.id, jour: j.jour, titre: j.titre, description: j.description })),
-    }),
-    prisma.prestation.createMany({
-      data: [
-        ...S.prestationsIncluses.map((libelle, ordre) => ({ sejourId: S.id, type: TypePrestation.INCLUSE, libelle, ordre })),
-        ...S.depensesAPrevoir.map((libelle, ordre) => ({ sejourId: S.id, type: TypePrestation.A_PREVOIR, libelle, ordre })),
-      ],
-    }),
-  ])
+  await ecrireContenuSejour(prisma, S, { publie: true })
 }
 
 async function seedDeparts() {
@@ -112,11 +82,12 @@ async function main() {
   await seedSejour()
   const nbDeparts = await seedDeparts()
   await seedDemandesFictives()
-  const [sejours, jours, prestations, departs, demandes] = await Promise.all([
+  const [sejours, jours, prestations, questions, equipements, departs, demandes] = await Promise.all([
     prisma.sejour.count(), prisma.jourProgramme.count(), prisma.prestation.count(),
-    prisma.depart.count(), prisma.demande.count(),
+    prisma.questionFrequente.count(), prisma.equipementVan.count(), prisma.depart.count(), prisma.demande.count(),
   ])
   console.log(`Séjours : ${sejours} · jours de programme : ${jours} · prestations : ${prestations}`)
+  console.log(`Questions fréquentes : ${questions} · équipements du van : ${equipements}`)
   console.log(`Départs : ${departs} (${nbDeparts} samedis de la saison 2027) · demandes fictives : ${demandes}`)
 }
 

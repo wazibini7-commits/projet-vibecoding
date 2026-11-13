@@ -24,6 +24,7 @@ const DEMANDE: DemandeReservation = {
 }
 
 const EXPEDITEUR = 'Vanlife <reservations@vanlife.example>'
+const LIEN = 'https://vanlife.example/#/suivi/VL-2027-0042/secret123'
 
 /** Faux transport : garde les messages « envoyés » ; peut échouer à la demande. */
 function fauxTransport(echecs = 0) {
@@ -49,7 +50,7 @@ beforeEach(viderBase)
 
 describe('contenu des e-mails', () => {
   it('accusé de réception : référence, dates, prix, « pas encore une réservation »', () => {
-    const e = modeleAccuseReception(DEMANDE)
+    const e = modeleAccuseReception(DEMANDE, LIEN)
     expect(e.sujet).toBe('Votre demande VL-2027-0042 — Bretagne Sauvage')
     expect(e.texte).toContain('Bonjour Camille,')
     expect(e.html).toContain('Merci Camille, nous avons bien reçu votre demande')
@@ -60,6 +61,10 @@ describe('contenu des e-mails', () => {
       expect(e.texte).toContain(attendu)
       expect(e.html).toContain(echapperHtml(attendu))
     }
+    // Lien personnel de suivi : bouton dans le HTML, adresse en clair dans le texte.
+    expect(e.texte).toContain(LIEN)
+    expect(e.html).toContain(`href="${LIEN}"`)
+    expect(e.html).toContain('Suivre ma demande')
     expect(e.html).toMatch(/^<!doctype html>/)
     expect(e.html).toContain('lang="fr"')
   })
@@ -87,9 +92,10 @@ describe('contenu des e-mails', () => {
     ['REFUSEE', 'Votre demande n’a pas pu être acceptée — VL-2027-0042'],
     ['ANNULEE', 'Votre demande a été annulée — VL-2027-0042'],
   ] as const)('changement de statut %s', (statut, sujet) => {
-    const e = modeleChangementStatut(DEMANDE, statut, 'Prévoir des vêtements chauds.')
+    const e = modeleChangementStatut(DEMANDE, statut, 'Prévoir des vêtements chauds.', LIEN)
     expect(e.sujet).toBe(sujet)
     expect(e.texte).toContain('Message de Vanlife : Prévoir des vêtements chauds.')
+    expect(e.texte).toContain(LIEN)
   })
 })
 

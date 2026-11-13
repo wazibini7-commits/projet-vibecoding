@@ -13,6 +13,7 @@ const app = await construireApp({
   horloge: () => new Date(),
   originesAutorisees: config.originesAutorisees,
   cookieSecurise: config.cookieSecurise,
+  siteUrl: config.siteUrl,
   limiteDemandesParMinute: 10,
   limiteConnexionsParMinute: 5,
   journal: { level: config.niveauJournal },

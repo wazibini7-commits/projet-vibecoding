@@ -22,3 +22,11 @@ export function formaterListe(elements: string[]): string {
 export function formaterDuree(jours: number, nuits: number): string {
   return `${jours} jour${jours > 1 ? 's' : ''} / ${nuits} nuit${nuits > 1 ? 's' : ''}`
 }
+
+/** 170 → « 2 h 50 » ; 30 → « 30 min » ; 120 → « 2 h » (temps de route). */
+export function formaterDureeRoute(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = Math.round(minutes % 60)
+  if (h === 0) return `${m} min`
+  return m === 0 ? `${h} h` : `${h} h ${String(m).padStart(2, '0')}`
+}

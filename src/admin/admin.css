@@ -88,11 +88,6 @@
 .admin-pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 16px; }
 
 /* Formulaires */
-.admin .champ textarea {
-  display: block; width: 100%; font: inherit; font-size: 1rem; padding: 10px 14px; resize: vertical;
-  border: 2px solid var(--c-bord-champ); border-radius: 10px; background: var(--c-blanc);
-}
-.admin .champ textarea:focus-visible { outline: 3px solid var(--c-focus); outline-offset: 2px; }
 .admin-choix { border: 0; padding: 0; margin: 0 0 16px; display: grid; gap: 6px; }
 .admin-choix legend { font-weight: 600; margin-bottom: 6px; }
 .admin-radio, .admin-case { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
@@ -127,3 +122,10 @@
   .admin-tableau thead th { text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--c-texte-doux); }
   .admin-tableau { background: var(--c-blanc); border-radius: var(--rayon); box-shadow: var(--ombre); overflow: hidden; }
 }
+
+/* Échange avec le client */
+.admin-echange { list-style: none; margin: 0 0 16px; padding: 0; display: grid; gap: 10px; }
+.admin-echange li { padding: 10px 12px; border-radius: 10px; }
+.admin-echange p { margin: 4px 0 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.admin-message-client { background: var(--c-info-fond); }
+.admin-message-vanlife { background: var(--c-fond-alt); }

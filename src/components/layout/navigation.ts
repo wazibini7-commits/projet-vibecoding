@@ -10,7 +10,9 @@ export const LIENS_PRINCIPAUX: LienNavigation[] = [
   { libelle: 'Vanlife', href: '#concept' },
   { libelle: 'Le séjour', href: '#sejour' },
   { libelle: 'Programme', href: '#programme' },
+  { libelle: 'Le van', href: '#van' },
   { libelle: 'Prix', href: '#prix' },
+  { libelle: 'FAQ', href: '#faq' },
   { libelle: 'Galerie', href: '#galerie' },
   { libelle: 'Demande', href: ROUTE_DEMANDE, principal: true },
 ]

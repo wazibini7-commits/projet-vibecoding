@@ -30,6 +30,7 @@ describe('POST /api/demandes — demande valide', () => {
       voyageur: { prenom: 'Camille', email: 'camille@exemple.fr' },
       dateDepart: '2027-05-15',
       dateRetour: '2027-05-19',
+      jetonSuivi: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/), // lien personnel, 256 bits
     })
   })
 
@@ -164,36 +165,5 @@ describe('limitation anti-spam', () => {
     }
     expect(codes).toEqual([201, 201, 429])
     await appLimitee.close()
-  })
-})
-
-describe('POST /api/demandes/suivi', () => {
-  const suivre = (payload: object) => app.inject({ method: 'POST', url: '/api/demandes/suivi', payload })
-
-  it("donne l'état de la demande avec la bonne référence et le bon e-mail", async () => {
-    await envoyer(DEMANDE_VALIDE)
-    await prisma.demande.update({ where: { reference: 'VL-2027-0001' }, data: { noteInterne: 'Client fidèle' } })
-    const rep = await suivre({ reference: ' vl-2027-0001 ', email: 'CAMILLE@exemple.fr' })
-    expect(rep.statusCode).toBe(200)
-    expect(rep.json()).toEqual({
-      reference: 'VL-2027-0001',
-      statut: 'RECUE',
-      sejour: { id: 'bretagne-sauvage', nom: 'Bretagne Sauvage' },
-      dateDepart: '2027-05-15',
-      dateRetour: '2027-05-19',
-      creeeLe: expect.any(String),
-      historique: [{ statut: 'RECUE', le: expect.any(String) }],
-    })
-    expect(rep.body).not.toContain('Client fidèle') // la note interne n'est jamais exposée
-  })
-
-  it.each([
-    ['mauvais e-mail', { reference: 'VL-2027-0001', email: 'autre@exemple.fr' }],
-    ['référence inconnue', { reference: 'VL-2027-9999', email: 'camille@exemple.fr' }],
-  ])('%s → 404 avec le même message (ne révèle rien)', async (_cas, payload) => {
-    await envoyer(DEMANDE_VALIDE)
-    const rep = await suivre(payload)
-    expect(rep.statusCode).toBe(404)
-    expect(rep.json()).toEqual({ message: 'Aucune demande ne correspond à cette référence et cette adresse e-mail.' })
   })
 })

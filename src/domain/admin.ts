@@ -80,13 +80,19 @@ export interface EvenementHistorique {
   commentaire: string | null
 }
 
-export type TypeEmail = 'ACCUSE_RECEPTION' | 'NOTIFICATION_VANLIFE' | 'CHANGEMENT_STATUT'
+export type TypeEmail =
+  | 'ACCUSE_RECEPTION' | 'NOTIFICATION_VANLIFE' | 'CHANGEMENT_STATUT'
+  | 'LIEN_SUIVI' | 'MESSAGE_VANLIFE' | 'MESSAGE_CLIENT' | 'ANNULATION_CLIENT'
 export type StatutEmail = 'EN_ATTENTE' | 'EN_COURS' | 'ENVOYE' | 'ECHEC'
 
 export const LIBELLES_TYPE_EMAIL: Record<TypeEmail, string> = {
   ACCUSE_RECEPTION: 'Accusé de réception',
   NOTIFICATION_VANLIFE: 'Notification à Vanlife',
   CHANGEMENT_STATUT: 'Changement de statut',
+  LIEN_SUIVI: 'Lien de suivi',
+  MESSAGE_VANLIFE: 'Réponse de Vanlife',
+  MESSAGE_CLIENT: 'Message du client (à Vanlife)',
+  ANNULATION_CLIENT: 'Annulation par le client (à Vanlife)',
 }
 
 export const LIBELLES_STATUT_EMAIL: Record<StatutEmail, string> = {
@@ -122,7 +128,17 @@ export interface DetailDemande {
   client: { prenom: string; nom: string | null; email: string; telephone: string | null }
   historique: EvenementHistorique[]
   emails: EmailDemande[]
+  messages: MessageAdmin[]
   transitionsPossibles: StatutDemande[]
+}
+
+/** Message échangé avec le client (espace de suivi ↔ back-office). */
+export interface MessageAdmin {
+  auteur: 'CLIENT' | 'VANLIFE'
+  /** Nom du membre de l'équipe ; null pour le client (ou un compte supprimé). */
+  nom: string | null
+  texte: string
+  le: string
 }
 
 export interface ChangementStatut {

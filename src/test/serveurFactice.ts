@@ -5,7 +5,7 @@ import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import { SEJOUR_BRETAGNE_SAUVAGE } from '../data/sejour'
 import { validerDemande } from '../domain/validation'
-import type { DemandeReservation, DepartDisponible, EntreeDemande } from '../domain/types'
+import type { DemandeEnregistree, DepartDisponible, EntreeDemande } from '../domain/types'
 import { ajouterJours, aujourdhuiIso } from '../utils/dates'
 
 export const SEJOUR = SEJOUR_BRETAGNE_SAUVAGE
@@ -51,7 +51,7 @@ export const serveur = setupServer(
     }
     depart.placesRestantes -= 1
     depart.complet = depart.placesRestantes === 0
-    const demande: DemandeReservation = {
+    const demande: DemandeEnregistree = {
       reference: `VL-2027-${String(etat.demandesRecues.length).padStart(4, '0')}`,
       statut: 'RECUE',
       creeeLe: new Date().toISOString(),
@@ -63,6 +63,7 @@ export const serveur = setupServer(
       voyageur: { prenom: validation.donnees.prenom, email: validation.donnees.email.toLowerCase() },
       dateDepart: depart.date,
       dateRetour: depart.dateRetour,
+      jetonSuivi: 'secret-de-test',
     }
     return HttpResponse.json(demande, { status: 201 })
   }),

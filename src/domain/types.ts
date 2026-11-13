@@ -8,7 +8,32 @@ export type DateIso = string
 export interface JourProgramme {
   jour: number
   titre: string
+  /** Texte du brief client. */
   description: string
+  /** Trajet en van du jour, estimé hors arrêts ; null s'il n'est pas encore connu. */
+  route: { distanceKm: number; dureeMinutes: number } | null
+  /** Lieu de la nuit ; null le dernier jour (retour). */
+  nuit: { lieu: string; aConfirmer: boolean } | null
+  /** Activités et visites proposées dans la journée. */
+  activites: string[]
+}
+
+/** Question fréquente, avec sa réponse ; aConfirmer = règle que Vanlife doit encore valider. */
+export interface QuestionFrequente {
+  question: string
+  reponse: string
+  aConfirmer: boolean
+}
+
+/** Un poste d'équipement du van (couchage, cuisine…), indicatif tant que le modèle n'est pas arrêté. */
+export interface EquipementVan {
+  categorie: string
+  detail: string
+}
+
+export interface FicheVan {
+  presentation: string
+  equipements: EquipementVan[]
 }
 
 export interface PrixIndicatif {
@@ -39,6 +64,8 @@ export interface Sejour {
   depensesAPrevoir: string[]
   /** Points de l'offre restant à confirmer par Vanlife. */
   elementsAConfirmer: string[]
+  faq: QuestionFrequente[]
+  van: FicheVan
 }
 
 // ---------- Demande de réservation ----------
@@ -95,17 +122,6 @@ export interface ResumeSejour {
   prixIndicatif: number
 }
 
-/** Suivi d'une demande par le client (POST /api/demandes/suivi). */
-export interface SuiviDemande {
-  reference: string
-  statut: StatutDemande
-  sejour: { id: string; nom: string }
-  dateDepart: DateIso
-  dateRetour: DateIso
-  creeeLe: string
-  historique: { statut: StatutDemande; le: string }[]
-}
-
 /** Demande enregistrée par le serveur (réponse 201 de POST /api/demandes). */
 export interface DemandeReservation {
   /** Référence communiquée au client, ex. VL-2027-0042. */
@@ -129,3 +145,9 @@ export interface DemandeReservation {
 
 /** Erreurs renvoyées par le serveur : celles du formulaire, plus le message libre. */
 export type ErreursServeur = ErreursDemande & { message?: string }
+
+/** Réponse 201 de POST /api/demandes : la demande, plus le lien personnel de suivi (donné une seule fois). */
+export interface DemandeEnregistree extends DemandeReservation {
+  /** Secret du lien « Suivre ma demande » (voir src/domain/suivi.ts). */
+  jetonSuivi: string
+}

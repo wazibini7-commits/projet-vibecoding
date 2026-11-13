@@ -10,6 +10,7 @@ import {
   type DetailDemande,
 } from '../../domain/admin'
 import type { StatutDemande } from '../../domain/types'
+import { MESSAGE_SUIVI_LONGUEUR_MAX } from '../../domain/suivi'
 import { formaterDateFr } from '../../utils/dates'
 import { formaterPrix } from '../../utils/format'
 import { ROUTE_ADMIN } from '../../utils/navigation'
@@ -89,6 +90,52 @@ function ChangerStatut({ demande }: { demande: DetailDemande }) {
         </label>
         <Bouton type="submit" disabled={!statut || mutation.isPending}>
           {mutation.isPending ? 'Enregistrement…' : 'Enregistrer le changement'}
+        </Bouton>
+      </form>
+    </section>
+  )
+}
+
+function Echange({ demande }: { demande: DetailDemande }) {
+  const client = useQueryClient()
+  const [texte, setTexte] = useState('')
+  const [envoye, setEnvoye] = useState(false)
+  const mutation = useMutation({
+    mutationFn: () => api.repondre(demande.reference, texte),
+    onSuccess: (maj) => {
+      client.setQueryData(clesAdmin.demande(demande.reference), maj)
+      setTexte('')
+      setEnvoye(true)
+    },
+  })
+  return (
+    <section className="carte admin-carte" aria-labelledby="titre-echange">
+      <h2 id="titre-echange" className="h3">Échange avec le client</h2>
+      {demande.messages.length === 0 ? (
+        <p className="admin-secondaire">Aucun message pour le moment.</p>
+      ) : (
+        <ul className="admin-echange">
+          {demande.messages.map((m, i) => (
+            <li key={i} className={m.auteur === 'CLIENT' ? 'admin-message-client' : 'admin-message-vanlife'}>
+              <span className="admin-secondaire">
+                {m.auteur === 'CLIENT' ? demande.client.prenom : m.nom ?? 'Vanlife (compte supprimé)'} — {formaterDateHeure(m.le)}
+              </span>
+              <p>{m.texte}</p>
+            </li>
+          ))}
+        </ul>
+      )}
+      {envoye && <Retour type="succes">Réponse envoyée par e-mail à {demande.client.email}.</Retour>}
+      {mutation.isError && <Retour type="erreur">{mutation.error.message}</Retour>}
+      <form onSubmit={(e) => { e.preventDefault(); setEnvoye(false); if (texte.trim()) mutation.mutate() }}>
+        <div className="champ">
+          <label htmlFor="admin-reponse">Répondre au client</label>
+          <p id="admin-reponse-aide" className="aide">Envoyé par e-mail, signé de votre prénom, et visible dans son espace de suivi.</p>
+          <textarea id="admin-reponse" rows={3} maxLength={MESSAGE_SUIVI_LONGUEUR_MAX} value={texte}
+            onChange={(e) => setTexte(e.target.value)} aria-describedby="admin-reponse-aide" />
+        </div>
+        <Bouton type="submit" variante="secondaire" disabled={!texte.trim() || mutation.isPending}>
+          {mutation.isPending ? 'Envoi…' : 'Envoyer la réponse'}
         </Bouton>
       </form>
     </section>
@@ -198,6 +245,7 @@ export default function DetailDemandePage({ reference }: { reference: string }) 
         </div>
         <div className="admin-colonne">
           <ChangerStatut demande={d} />
+          <Echange demande={d} />
           <NoteInterne demande={d} />
           <p className="admin-aide">
             Une demande refusée ou annulée libère sa place sur le départ.

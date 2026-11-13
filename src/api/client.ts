@@ -1,9 +1,8 @@
 // Appels au serveur Vanlife (backend/). Toutes les requêtes passent par ici.
 // En développement, Vite redirige /api vers le serveur (voir vite.config.ts) ;
 // en production, VITE_API_URL peut indiquer une autre adresse (ex. https://api.vanlife.bzh/api).
-import type {
-  DemandeReservation, DepartDisponible, EntreeDemande, ErreursServeur, Sejour, SuiviDemande,
-} from '../domain/types'
+import type { DemandeEnregistree, DepartDisponible, EntreeDemande, ErreursServeur, Sejour } from '../domain/types'
+import type { AccesSuivi, SuiviDemande } from '../domain/suivi'
 
 const BASE = import.meta.env.VITE_API_URL ?? '/api'
 
@@ -57,14 +56,14 @@ export const lireSejour = (id: string) => lire<Sejour>(`/sejours/${encodeURIComp
 export const lireDeparts = (id: string) => lire<DepartDisponible[]>(`/sejours/${encodeURIComponent(id)}/departs`)
 
 export type ResultatEnvoi =
-  | { ok: true; demande: DemandeReservation }
+  | { ok: true; demande: DemandeEnregistree }
   /** Demande refusée par les règles (400) ou par les places disponibles (409) : erreurs par champ. */
   | { ok: false; erreurs: ErreursServeur; departIndisponible: boolean }
 
 /** Envoie la demande. Les refus « métier » sont des résultats ; les pannes lèvent une ErreurApi. */
 export async function envoyerDemande(entree: EntreeDemande): Promise<ResultatEnvoi> {
   const reponse = await appeler('/demandes', { method: 'POST', body: JSON.stringify(entree) })
-  if (reponse.status === 201) return { ok: true, demande: await lireJson<DemandeReservation>(reponse) }
+  if (reponse.status === 201) return { ok: true, demande: await lireJson<DemandeEnregistree>(reponse) }
   if (reponse.status === 400 || reponse.status === 409) {
     const corps = await lireJson<{ erreurs?: ErreursServeur; message?: string }>(reponse)
     if (corps.erreurs) return { ok: false, erreurs: corps.erreurs, departIndisponible: reponse.status === 409 }
@@ -75,10 +74,31 @@ export async function envoyerDemande(entree: EntreeDemande): Promise<ResultatEnv
   throw new ErreurApi("Votre demande n'a pas pu être enregistrée. Réessayez dans quelques instants.", reponse.status)
 }
 
-/** Suivi d'une demande ; null si la référence et l'e-mail ne correspondent à aucune demande. */
-export async function suivreDemande(reference: string, email: string): Promise<SuiviDemande | null> {
-  const reponse = await appeler('/demandes/suivi', { method: 'POST', body: JSON.stringify({ reference, email }) })
+// ---------- Espace client (lien personnel de suivi) ----------
+
+/** Demande vue par le client ; null si le lien est invalide ou expiré. */
+export async function lireSuivi(acces: AccesSuivi): Promise<SuiviDemande | null> {
+  const reponse = await appeler('/suivi', { method: 'POST', body: JSON.stringify(acces) })
   if (reponse.status === 404) return null
   if (!reponse.ok) throw new ErreurApi(MESSAGE_SERVEUR_INJOIGNABLE, reponse.status)
   return lireJson<SuiviDemande>(reponse)
 }
+
+/** Lien perdu : le serveur envoie un nouveau lien par e-mail. Renvoie le message à afficher (toujours le même). */
+export async function demanderLienSuivi(reference: string, email: string): Promise<string> {
+  const reponse = await appeler('/suivi/lien', { method: 'POST', body: JSON.stringify({ reference, email }) })
+  if (reponse.status === 429) throw new ErreurApi('Trop de demandes depuis votre connexion. Réessayez dans une minute.', 429)
+  if (!reponse.ok) throw new ErreurApi(MESSAGE_SERVEUR_INJOIGNABLE, reponse.status)
+  return (await lireJson<{ message: string }>(reponse)).message
+}
+
+/** Action du client (annuler, écrire) : la demande à jour, ou une ErreurApi avec un message affichable. */
+async function actionSuivi(chemin: string, corps: object): Promise<SuiviDemande> {
+  const reponse = await appeler(chemin, { method: 'POST', body: JSON.stringify(corps) })
+  if (reponse.ok) return lireJson<SuiviDemande>(reponse)
+  const message = (await lireJson<{ message?: string }>(reponse).catch(() => ({ message: undefined }))).message
+  throw new ErreurApi(message ?? MESSAGE_SERVEUR_INJOIGNABLE, reponse.status)
+}
+
+export const annulerDemande = (acces: AccesSuivi, motif: string) => actionSuivi('/suivi/annuler', { ...acces, motif })
+export const ecrireAVanlife = (acces: AccesSuivi, texte: string) => actionSuivi('/suivi/messages', { ...acces, texte })

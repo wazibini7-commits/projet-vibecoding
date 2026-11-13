@@ -12,6 +12,8 @@ export const STATUTS_ACTIFS: StatutDemande[] = [StatutDemande.RECUE, StatutDeman
 const AVEC_CONTENU = {
   programme: { orderBy: { jour: 'asc' } },
   prestations: { orderBy: [{ type: 'asc' }, { ordre: 'asc' }] },
+  questions: { orderBy: { ordre: 'asc' } },
+  equipementsVan: { orderBy: { ordre: 'asc' } },
 } satisfies Prisma.SejourInclude
 
 type SejourAvecContenu = Prisma.SejourGetPayload<{ include: typeof AVEC_CONTENU }>
@@ -27,11 +29,25 @@ function versSejour(s: SejourAvecContenu): Sejour {
     nombreVoyageurs: s.nombreVoyageurs,
     villeDepart: s.villeDepart,
     villeRetour: s.villeRetour,
-    programme: s.programme.map((j) => ({ jour: j.jour, titre: j.titre, description: j.description })),
+    programme: s.programme.map((j) => ({
+      jour: j.jour,
+      titre: j.titre,
+      description: j.description,
+      route: j.distanceKm !== null && j.dureeRouteMinutes !== null
+        ? { distanceKm: j.distanceKm, dureeMinutes: j.dureeRouteMinutes }
+        : null,
+      nuit: j.lieuNuit ? { lieu: j.lieuNuit, aConfirmer: j.nuitAConfirmer } : null,
+      activites: j.activites,
+    })),
     prix: { montant: s.prixCentimes / 100, devise: 'EUR', pourPersonnes: s.nombreVoyageurs, aConfirmer: true },
     prestationsIncluses: s.prestations.filter((p) => p.type === 'INCLUSE').map((p) => p.libelle),
     depensesAPrevoir: s.prestations.filter((p) => p.type === 'A_PREVOIR').map((p) => p.libelle),
     elementsAConfirmer: s.elementsAConfirmer,
+    faq: s.questions.map((q) => ({ question: q.question, reponse: q.reponse, aConfirmer: q.aConfirmer })),
+    van: {
+      presentation: s.presentationVan,
+      equipements: s.equipementsVan.map((e) => ({ categorie: e.categorie, detail: e.detail })),
+    },
   }
 }
 

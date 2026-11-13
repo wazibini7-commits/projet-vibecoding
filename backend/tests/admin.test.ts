@@ -265,7 +265,11 @@ describe('détail et changement de statut', () => {
     const reference = await nouvelleDemande()
     const rep = await appel({ method: 'PUT', url: `/api/admin/demandes/${reference}/note`, payload: { noteInterne: '  Rappeler mardi  ' } })
     expect(rep.json().noteInterne).toBe('Rappeler mardi')
-    const suivi = await app.inject({ method: 'POST', url: '/api/demandes/suivi', payload: { reference, email: 'camille@exemple.fr' } })
+    const jeton = (await app.inject({ method: 'POST', url: '/api/demandes', payload: { ...DEMANDE_VALIDE, email: 'autre@exemple.fr' } })).json().jetonSuivi
+    const autre = (await prisma.demande.findFirstOrThrow({ where: { client: { email: 'autre@exemple.fr' } } })).reference
+    await appel({ method: 'PUT', url: `/api/admin/demandes/${autre}/note`, payload: { noteInterne: 'Rappeler mardi' } })
+    const suivi = await app.inject({ method: 'POST', url: '/api/suivi', payload: { reference: autre, jeton } })
+    expect(suivi.statusCode).toBe(200)
     expect(suivi.body).not.toContain('Rappeler mardi')
     expect((await appel({ method: 'PUT', url: `/api/admin/demandes/${reference}/note`, payload: { noteInterne: 'x'.repeat(2001) } })).statusCode).toBe(400)
   })

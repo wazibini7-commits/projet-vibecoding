@@ -1,5 +1,5 @@
 // Sections de l'accueil qui dépendent du contenu du séjour (chargé depuis l'API) :
-// présentation, programme, prix, galerie, invitation à réserver.
+// présentation, programme (avec carte), van, prix, questions fréquentes, galerie, invitation à réserver.
 import { useEffect } from 'react'
 import { useSejour } from '../../api/requetes'
 import { ID_SEJOUR_PILOTE } from '../../data/sejour'
@@ -8,6 +8,8 @@ import PresentationSejour from './PresentationSejour'
 import ProgrammeSejour from './ProgrammeSejour'
 import PrixPrestations from './PrixPrestations'
 import Galerie from './Galerie'
+import FicheVan from './FicheVan'
+import FaqSejour from './FaqSejour'
 import AppelReservation from './AppelReservation'
 
 export default function SectionsSejour() {
@@ -45,7 +47,9 @@ export default function SectionsSejour() {
     <>
       <PresentationSejour sejour={sejour} />
       <ProgrammeSejour programme={sejour.programme} />
+      <FicheVan van={sejour.van} />
       <PrixPrestations sejour={sejour} />
+      <FaqSejour questions={sejour.faq} />
       <Galerie />
       <AppelReservation sejour={sejour} />
     </>
