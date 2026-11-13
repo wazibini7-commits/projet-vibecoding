@@ -1,4 +1,5 @@
 import type { DepartDisponible } from '../../domain/types'
+import { formaterDateFr } from '../../utils/dates'
 import type { GroupeOptions } from '../ui/ChampListe'
 
 /** Une « place » = un van pour le groupe de voyageurs. Libellé court : il doit tenir sur smartphone. */
@@ -8,12 +9,6 @@ export function libellePlaces(depart: DepartDisponible): string {
   return `${depart.placesRestantes} vans libres`
 }
 
-/** « 2027-04-17 » → « samedi 17 avril » (l'année figure dans le titre du mois). */
-function jourSansAnnee(date: string): string {
-  const [a, m, j] = date.split('-').map(Number)
-  return new Intl.DateTimeFormat('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'UTC' })
-    .format(new Date(Date.UTC(a, m - 1, j)))
-}
 
 /** « 2027-04 » → « Avril 2027 ». */
 function libelleMois(date: string): string {
@@ -32,7 +27,7 @@ export function groupesDeparts(departs: DepartDisponible[]): GroupeOptions[] {
     if (groupe?.libelle !== libelle) groupes.push((groupe = { libelle, options: [] }))
     groupe.options.push({
       valeur: d.date,
-      libelle: `${jourSansAnnee(d.date)} · ${libellePlaces(d)}`,
+      libelle: `${formaterDateFr(d.date, { annee: false })} · ${libellePlaces(d)}`,
       desactivee: d.complet,
     })
   }

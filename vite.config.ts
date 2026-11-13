@@ -14,6 +14,7 @@ export default defineConfig({
     // .test.ts : logique métier (node) ; .test.tsx : interface (jsdom, déclaré dans le fichier).
     include: ['src/**/*.test.{ts,tsx}'],
     environment: 'node',
+    setupFiles: ['src/test/configuration.ts'],
     testTimeout: 15_000, // parcours complets dans jsdom : marge si la machine est chargée
   },
 })

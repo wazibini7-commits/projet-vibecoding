@@ -7,7 +7,7 @@ export interface ChampFormulaireProps extends AttributsNatifs {
   libelle: string
   valeur: string
   onValeur: (valeur: string) => void
-  type?: 'text' | 'email' | 'date'
+  type?: 'text' | 'email' | 'date' | 'password' | 'search' | 'number'
   /** Texte d'aide affiché sous le libellé. */
   aide?: string
   /** Message d'erreur explicite ; sa présence met le champ en état d'erreur. */

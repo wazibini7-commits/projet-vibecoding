@@ -46,8 +46,12 @@ export default function ConfirmationPage({ demande, onRetour }: ConfirmationPage
 
             <h2 className="h3 suite-titre">Et ensuite ?</h2>
             <p>
-              Ce n'est pas encore une réservation. Vanlife vérifie la disponibilité du van pour cette date,
-              puis vous recontacte à l'adresse {demande.voyageur.email}. Aucun paiement n'est demandé à ce stade.
+              Un e-mail récapitulatif vous est envoyé à l'adresse <strong>{demande.voyageur.email}</strong>.
+              Pensez à vérifier vos courriers indésirables si vous ne le voyez pas dans quelques minutes.
+            </p>
+            <p>
+              Ce n'est pas encore une réservation : Vanlife vérifie la disponibilité du van pour cette date,
+              puis vous recontacte. Aucun paiement n'est demandé à ce stade.
             </p>
 
             <Bouton onClick={onRetour}>Retour au circuit</Bouton>

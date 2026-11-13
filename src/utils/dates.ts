@@ -24,10 +24,16 @@ export function ajouterJours(date: DateIso, jours: number): DateIso {
   return new Date(Date.UTC(a, m - 1, j + jours)).toISOString().slice(0, 10)
 }
 
-/** « 2027-05-14 » → « vendredi 14 mai 2027 ». */
-export function formaterDateFr(date: DateIso): string {
+/**
+ * « 2027-05-14 » → « vendredi 14 mai 2027 » ; « 2027-05-01 » → « samedi 1er mai 2027 » (usage français).
+ * Avec { annee: false } : « samedi 1er mai ».
+ */
+export function formaterDateFr(date: DateIso, options: { annee?: boolean } = {}): string {
   const [a, m, j] = date.split('-').map(Number)
   return new Intl.DateTimeFormat('fr-FR', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC',
-  }).format(new Date(Date.UTC(a, m - 1, j)))
+    weekday: 'long', day: 'numeric', month: 'long', year: options.annee === false ? undefined : 'numeric', timeZone: 'UTC',
+  })
+    .formatToParts(new Date(Date.UTC(a, m - 1, j)))
+    .map((p) => (p.type === 'day' && p.value === '1' ? '1er' : p.value))
+    .join('')
 }

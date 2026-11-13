@@ -139,6 +139,7 @@ model Demande {
   noteInterne     String?            @map("note_interne") // visible uniquement par Vanlife
   statut          StatutDemande      @default(RECUE)
   historique      HistoriqueStatut[]
+  emails          EmailSortant[]
   creeLe          DateTime           @default(now()) @map("cree_le")
   modifieLe       DateTime           @updatedAt @map("modifie_le")
 
@@ -165,10 +166,25 @@ model Utilisateur {
   role              Role               @default(GESTIONNAIRE)
   actif             Boolean            @default(true)
   changementsStatut HistoriqueStatut[]
+  sessions          Session[]
   creeLe            DateTime           @default(now()) @map("cree_le")
   derniereConnexion DateTime?          @map("derniere_connexion")
 
   @@map("utilisateurs")
+}
+
+/// Session de connexion au back-office. Le cookie contient un jeton aléatoire ; la base n'en garde
+/// que l'empreinte (SHA-256) : une fuite de la base ne permet pas d'usurper une session.
+model Session {
+  id            String      @id // empreinte SHA-256 du jeton
+  utilisateurId String      @map("utilisateur_id") @db.Uuid
+  utilisateur   Utilisateur @relation(fields: [utilisateurId], references: [id], onDelete: Cascade)
+  creeLe        DateTime    @default(now()) @map("cree_le")
+  expireLe      DateTime    @map("expire_le")
+
+  @@index([utilisateurId])
+  @@index([expireLe])
+  @@map("sessions")
 }
 
 /// Trace de chaque changement de statut d'une demande : qui, quand, de quoi vers quoi.
@@ -185,4 +201,47 @@ model HistoriqueStatut {
 
   @@index([demandeId])
   @@map("historique_statuts")
+}
+
+// ---------- E-mails ----------
+
+enum TypeEmail {
+  ACCUSE_RECEPTION // au client : « nous avons bien reçu votre demande »
+  NOTIFICATION_VANLIFE // à l'équipe Vanlife : « nouvelle demande »
+  CHANGEMENT_STATUT // au client : demande confirmée, refusée… (étape 5)
+
+  @@map("type_email")
+}
+
+enum StatutEmail {
+  EN_ATTENTE // dans la file, pas encore envoyé (ou nouvel essai prévu)
+  EN_COURS // pris en charge par l'envoi, à l'instant
+  ENVOYE
+  ECHEC // abandonné après plusieurs essais
+
+  @@map("statut_email")
+}
+
+/// File d'envoi des e-mails (« outbox ») : un e-mail est enregistré dans la même transaction que
+/// l'événement qui le déclenche, puis envoyé en arrière-plan avec de nouveaux essais en cas de panne.
+/// Aucun e-mail n'est perdu, et une demande n'échoue jamais à cause du serveur de messagerie.
+model EmailSortant {
+  id                 Int         @id @default(autoincrement())
+  type               TypeEmail
+  demandeId          String?     @map("demande_id") @db.Uuid
+  demande            Demande?    @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  destinataire       String
+  sujet              String
+  texte              String // version texte (lisible partout)
+  html               String // version mise en forme
+  statut             StatutEmail @default(EN_ATTENTE)
+  tentatives         Int         @default(0)
+  prochaineTentative DateTime    @default(now()) @map("prochaine_tentative")
+  derniereErreur     String?     @map("derniere_erreur")
+  creeLe             DateTime    @default(now()) @map("cree_le")
+  envoyeLe           DateTime?   @map("envoye_le")
+
+  @@index([statut, prochaineTentative])
+  @@index([demandeId])
+  @@map("emails_sortants")
 }

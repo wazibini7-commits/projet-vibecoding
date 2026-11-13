@@ -17,6 +17,8 @@ describe('dates', () => {
   })
   it('formaterDateFr', () => {
     expect(formaterDateFr('2027-05-14')).toBe('vendredi 14 mai 2027')
+    expect(formaterDateFr('2027-05-01')).toBe('samedi 1er mai 2027') // « 1er », jamais « 1 »
+    expect(formaterDateFr('2027-05-01', { annee: false })).toBe('samedi 1er mai')
   })
 })
 

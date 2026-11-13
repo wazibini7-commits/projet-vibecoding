@@ -9,19 +9,26 @@ export const prisma = new PrismaClient()
 /** « Aujourd'hui » pour tous les tests : 10 janvier 2027, en milieu de journée. */
 export const MAINTENANT = new Date(2027, 0, 10, 12, 0, 0)
 
-export function creerApp(options: { limiteDemandesParMinute?: number } = {}) {
+export const EMAIL_EQUIPE = 'equipe@vanlife.example'
+/** Adresse du site : exigée sur les requêtes de modification du back-office. */
+export const ORIGINE = 'http://localhost:5173'
+
+export function creerApp(options: { limiteDemandesParMinute?: number; limiteConnexionsParMinute?: number; declencherEnvoi?: () => void } = {}) {
   return construireApp({
     prisma,
     horloge: () => MAINTENANT,
-    originesAutorisees: ['http://localhost:5173'],
+    originesAutorisees: [ORIGINE],
+    cookieSecurise: false,
     limiteDemandesParMinute: options.limiteDemandesParMinute ?? 1000,
+    limiteConnexionsParMinute: options.limiteConnexionsParMinute ?? 1000,
+    emails: { equipe: EMAIL_EQUIPE, declencherEnvoi: options.declencherEnvoi ?? (() => {}) },
   })
 }
 
 /** Vide toutes les tables et remet le compteur de références à 1. */
 export async function viderBase() {
   await prisma.$executeRawUnsafe(
-    'TRUNCATE historique_statuts, demandes, clients, departs, prestations, jours_programme, sejours, utilisateurs RESTART IDENTITY CASCADE',
+    'TRUNCATE sessions, emails_sortants, historique_statuts, demandes, clients, departs, prestations, jours_programme, sejours, utilisateurs RESTART IDENTITY CASCADE',
   )
   await prisma.$executeRawUnsafe('ALTER SEQUENCE demande_reference_seq RESTART WITH 1')
 }

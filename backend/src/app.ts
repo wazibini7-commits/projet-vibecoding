@@ -4,17 +4,29 @@ import Fastify, { type FastifyError, type FastifyServerOptions } from 'fastify'
 import cors from '@fastify/cors'
 import helmet from '@fastify/helmet'
 import rateLimit from '@fastify/rate-limit'
+import cookie from '@fastify/cookie'
 import type { PrismaClient } from '@prisma/client'
 import { routesSejours } from './routes/sejours'
 import { routesDemandes } from './routes/demandes'
+import { routesAdmin } from './routes/admin'
 
 export interface OptionsApp {
   prisma: PrismaClient
   /** Heure courante — injectable pour que les tests ne dépendent pas du calendrier. */
   horloge: () => Date
   originesAutorisees: string[]
+  /** Cookie de session réservé au HTTPS (vrai en production). */
+  cookieSecurise: boolean
   /** Nombre maximal de demandes envoyées par minute depuis une même adresse IP (anti-spam). */
   limiteDemandesParMinute: number
+  /** Essais de connexion au back-office par minute et par adresse IP (contre les essais de mots de passe en série). */
+  limiteConnexionsParMinute: number
+  emails: {
+    /** Adresse de l'équipe Vanlife (notification de nouvelle demande). */
+    equipe: string
+    /** Demande un envoi immédiat de la file des e-mails (sans attendre le passage régulier). */
+    declencherEnvoi: () => void
+  }
   journal?: FastifyServerOptions['logger']
 }
 
@@ -26,7 +38,12 @@ export async function construireApp(options: OptionsApp) {
   })
 
   await app.register(helmet)
-  await app.register(cors, { origin: options.originesAutorisees, methods: ['GET', 'POST'] })
+  await app.register(cors, {
+    origin: options.originesAutorisees,
+    methods: ['GET', 'POST', 'PUT', 'PATCH'],
+    credentials: true, // cookie de session du back-office
+  })
+  await app.register(cookie)
   await app.register(rateLimit, { global: false })
 
   // Requête mal formée (JSON illisible, champ manquant, mauvais type) : réponse courte en français.
@@ -53,5 +70,6 @@ export async function construireApp(options: OptionsApp) {
 
   await app.register(routesSejours, options)
   await app.register(routesDemandes, options)
+  await app.register(routesAdmin, options)
   return app
 }

@@ -10,6 +10,7 @@ import { validerDemande } from '../../../src/domain/validation'
 import { ajouterJours } from '../../../src/utils/dates'
 import { versDate, versIso } from '../dates'
 import { STATUTS_ACTIFS } from './sejours'
+import { modeleAccuseReception, modeleNotificationVanlife } from '../emails/modeles'
 
 export const MESSAGE_LONGUEUR_MAX = 1000
 
@@ -44,6 +45,7 @@ export async function enregistrerDemande(
   entree: EntreeDemande,
   maintenant: Date,
   aujourdhui: DateIso,
+  options: { emailEquipe: string },
 ): Promise<ResultatEnregistrement> {
   const sejour = await prisma.sejour.findFirst({ where: { id: entree.sejourId, publie: true } })
   if (!sejour) return { type: 'sejour-inconnu' }
@@ -109,27 +111,37 @@ export async function enregistrerDemande(
       },
     })
 
-    return {
-      type: 'ok',
-      demande: {
-        reference: demande.reference,
-        statut: demande.statut,
-        creeeLe: demande.creeLe.toISOString(),
-        sejour: {
-          id: sejour.id,
-          nom: sejour.nom,
-          jours: sejour.dureeJours,
-          nuits: sejour.dureeNuits,
-          nombreVoyageurs: sejour.nombreVoyageurs,
-          villeDepart: sejour.villeDepart,
-          villeRetour: sejour.villeRetour,
-          prixIndicatif: demande.prixCentimes / 100,
-        },
-        voyageur: { prenom: client.prenom, email: client.email },
-        dateDepart: donnees.dateDepart,
-        dateRetour: versIso(demande.dateRetour),
+    const enregistree: DemandeReservation = {
+      reference: demande.reference,
+      statut: demande.statut,
+      creeeLe: demande.creeLe.toISOString(),
+      sejour: {
+        id: sejour.id,
+        nom: sejour.nom,
+        jours: sejour.dureeJours,
+        nuits: sejour.dureeNuits,
+        nombreVoyageurs: sejour.nombreVoyageurs,
+        villeDepart: sejour.villeDepart,
+        villeRetour: sejour.villeRetour,
+        prixIndicatif: demande.prixCentimes / 100,
       },
+      voyageur: { prenom: client.prenom, email: client.email },
+      dateDepart: donnees.dateDepart,
+      dateRetour: versIso(demande.dateRetour),
     }
+
+    // E-mails mis en file DANS la même transaction : si la demande est enregistrée, ses e-mails le sont
+    // aussi (et inversement). L'envoi réel se fait ensuite en arrière-plan (src/emails/file.ts).
+    const accuse = modeleAccuseReception(enregistree)
+    const notification = modeleNotificationVanlife(enregistree, message)
+    await tx.emailSortant.createMany({
+      data: [
+        { type: 'ACCUSE_RECEPTION', demandeId: demande.id, destinataire: client.email, ...accuse },
+        { type: 'NOTIFICATION_VANLIFE', demandeId: demande.id, destinataire: options.emailEquipe, ...notification },
+      ],
+    })
+
+    return { type: 'ok', demande: enregistree }
   })
 }
 

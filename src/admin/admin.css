@@ -1,0 +1,129 @@
+/* Back-office Vanlife — chargé uniquement avec l'administration (fichier séparé).
+   Reprend les couleurs et composants du site (global.css) ; présentation plus dense, orientée travail. */
+
+.admin { min-height: 100vh; background: var(--c-fond); }
+.admin-conteneur { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 16px; }
+.admin-principal { padding-top: 24px; padding-bottom: 48px; }
+.admin h1 { font-family: var(--f-titre); color: var(--c-encre); font-size: clamp(1.6rem, 4vw, 2.1rem); line-height: 1.2; margin: 0 0 12px; }
+
+/* En-tête */
+.admin-entete { background: var(--c-nuit); color: var(--c-blanc); }
+.admin-entete-interieur { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; padding-top: 12px; padding-bottom: 12px; }
+.admin-logo { display: flex; flex-direction: column; color: var(--c-blanc); text-decoration: none; margin-right: auto; }
+.admin-logo-sous-titre { font-size: 0.8rem; color: var(--c-accent-clair); letter-spacing: 0.04em; }
+.admin-navigation { display: flex; gap: 4px; order: 3; width: 100%; overflow-x: auto; }
+.admin-navigation a {
+  color: var(--c-blanc); text-decoration: none; padding: 10px 14px; border-radius: 8px; white-space: nowrap; min-height: 44px;
+  display: inline-flex; align-items: center;
+}
+.admin-navigation a:hover { background: rgba(255, 255, 255, 0.1); }
+.admin-navigation a[aria-current='page'] { background: rgba(255, 255, 255, 0.16); font-weight: 700; box-shadow: inset 0 -3px 0 var(--c-accent-clair); }
+.admin-utilisateur { display: flex; align-items: center; gap: 12px; font-size: 0.9rem; }
+.admin-role { display: block; font-size: 0.75rem; color: var(--c-accent-clair); }
+.admin-lien-bouton {
+  background: none; border: 1px solid rgba(255, 255, 255, 0.6); color: var(--c-blanc); border-radius: 999px;
+  padding: 8px 14px; font: inherit; cursor: pointer; min-height: 44px;
+}
+.admin-lien-bouton:hover { background: rgba(255, 255, 255, 0.12); }
+.admin-entete a:focus-visible, .admin-entete button:focus-visible { outline: 3px solid var(--c-focus-sombre); outline-offset: 2px; }
+
+/* Blocs */
+.admin-carte { padding: 20px; margin-bottom: 20px; }
+.admin-carte h2 { margin-top: 0; }
+.admin-titre-ligne { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.admin-titre-ligne h1 { margin: 0; }
+.admin-aide { color: var(--c-texte-doux); font-size: 0.95rem; }
+.admin .lien-retour, .admin .lien-retour:hover { color: var(--c-encre); }
+.admin-secondaire { display: block; color: var(--c-texte-doux); font-size: 0.85rem; }
+.admin-vide { padding: 32px; text-align: center; color: var(--c-texte-doux); background: var(--c-blanc); border-radius: var(--rayon); }
+.alerte-succes { background: #e3f2ea; border: 1px solid #a8d5bd; color: var(--c-ok); }
+.admin-grille { display: grid; gap: 0 24px; }
+.admin-infos { display: grid; grid-template-columns: max-content 1fr; gap: 8px 16px; margin: 0; }
+.admin-infos dt { color: var(--c-texte-doux); }
+.admin-infos dd { margin: 0; overflow-wrap: anywhere; }
+.admin-message { white-space: pre-wrap; }
+
+/* Pastilles de statut (contraste ≥ 4,5:1) */
+.pastille-statut { display: inline-block; padding: 4px 12px; border-radius: 999px; font-size: 0.85rem; font-weight: 700; white-space: nowrap; }
+.pastille-recue { background: #fff3cd; color: #5c4400; }
+.pastille-en_etude { background: #e1eef0; color: #173d45; }
+.pastille-confirmee { background: #dcf0e5; color: #1a5e41; }
+.pastille-refusee { background: #fdecea; color: #a3221b; }
+.pastille-annulee { background: #ebebeb; color: #44504f; }
+
+/* Filtres */
+.admin-filtres { display: grid; gap: 12px; margin: 16px 0; }
+.admin-onglets { display: flex; flex-wrap: wrap; gap: 8px; }
+.admin-onglets button {
+  font: inherit; font-size: 0.95rem; padding: 8px 14px; min-height: 44px; border-radius: 999px; cursor: pointer;
+  background: var(--c-blanc); color: var(--c-encre); border: 2px solid var(--c-bord-champ);
+}
+.admin-onglets button[aria-pressed='true'] { background: var(--c-encre); color: var(--c-blanc); border-color: var(--c-encre); }
+.admin-onglets button:focus-visible { outline: 3px solid var(--c-focus); outline-offset: 2px; }
+.admin-compteur { display: inline-block; min-width: 1.6em; padding: 0 6px; margin-left: 4px; border-radius: 999px; background: rgba(23, 61, 69, 0.1); font-size: 0.85em; text-align: center; }
+.admin-onglets button[aria-pressed='true'] .admin-compteur { background: rgba(255, 255, 255, 0.2); }
+.admin-recherche { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.admin-recherche .champ { flex: 1 1 260px; margin: 0; }
+
+/* Tableaux : lignes en cartes sur smartphone, tableau classique sur grand écran */
+.admin-tableau { width: 100%; border-collapse: collapse; }
+.admin-tableau thead { display: none; }
+.admin-tableau tr { display: block; background: var(--c-blanc); border-radius: var(--rayon); box-shadow: var(--ombre); padding: 12px 16px; margin-bottom: 12px; }
+/* Smartphone : libellé de la colonne au-dessus de la valeur. */
+.admin-tableau th[scope='row'], .admin-tableau td { display: block; padding: 6px 0; text-align: left; font-weight: normal; overflow-wrap: anywhere; }
+.admin-tableau th[scope='row'] { font-weight: 700; }
+.admin-tableau td::before, .admin-tableau th[scope='row']::before {
+  content: attr(data-libelle); display: block; color: var(--c-texte-doux); font-size: 0.8rem; font-weight: normal;
+  text-transform: uppercase; letter-spacing: 0.04em;
+}
+.admin-tableau a { font-weight: 700; color: var(--c-encre); }
+.admin-ligne-passee { opacity: 0.65; }
+.admin-plein { font-weight: 700; color: var(--c-accent-fonce); }
+.admin-tableau select, .admin-capacite input {
+  font: inherit; font-size: 1rem; min-height: 44px; padding: 6px 10px; border: 2px solid var(--c-bord-champ); border-radius: 8px; background: var(--c-blanc);
+}
+.admin-capacite { display: flex; gap: 8px; align-items: center; }
+.admin-capacite input { width: 5em; }
+.admin-capacite .btn { min-height: 44px; padding: 6px 16px; }
+.admin-pagination { display: flex; align-items: center; justify-content: center; gap: 16px; margin-top: 16px; }
+
+/* Formulaires */
+.admin .champ textarea {
+  display: block; width: 100%; font: inherit; font-size: 1rem; padding: 10px 14px; resize: vertical;
+  border: 2px solid var(--c-bord-champ); border-radius: 10px; background: var(--c-blanc);
+}
+.admin .champ textarea:focus-visible { outline: 3px solid var(--c-focus); outline-offset: 2px; }
+.admin-choix { border: 0; padding: 0; margin: 0 0 16px; display: grid; gap: 6px; }
+.admin-choix legend { font-weight: 600; margin-bottom: 6px; }
+.admin-radio, .admin-case { display: flex; align-items: center; gap: 10px; min-height: 44px; cursor: pointer; }
+.admin-radio input, .admin-case input { width: 22px; height: 22px; accent-color: var(--c-encre); }
+.admin-case { margin-bottom: 16px; }
+.admin-formulaire-ligne { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
+.admin-formulaire-ligne .champ { margin: 0; flex: 1 1 180px; }
+.admin-connexion { max-width: 440px; margin: 24px auto; }
+.admin-connexion h1:focus { outline: none; }
+
+/* Historique et e-mails */
+.admin-historique { list-style: none; margin: 0; padding: 0 0 0 16px; border-left: 3px solid var(--c-bord); }
+.admin-historique li { position: relative; padding: 0 0 14px 8px; }
+.admin-historique li::before { content: ''; position: absolute; left: -25px; top: 6px; width: 13px; height: 13px; border-radius: 50%; background: var(--c-encre); border: 2px solid var(--c-fond); }
+.admin-historique p { margin: 4px 0 0; font-style: italic; }
+.admin-emails { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.admin-emails li { display: grid; gap: 2px; }
+.admin-email-statut { font-size: 0.9rem; font-weight: 600; }
+.admin-email-envoye { color: var(--c-ok); }
+.admin-email-en_attente, .admin-email-en_cours { color: #5c4400; }
+.admin-email-echec { color: var(--c-erreur); }
+
+@media (min-width: 900px) {
+  .admin-navigation { order: 0; width: auto; }
+  .admin-grille { grid-template-columns: 1.2fr 1fr; align-items: start; }
+  .admin-tableau thead { display: table-header-group; }
+  .admin-tableau tr { display: table-row; box-shadow: none; border-radius: 0; padding: 0; margin: 0; }
+  .admin-tableau tbody tr { border-top: 1px solid var(--c-bord); }
+  .admin-tableau tbody tr:hover { background: #fffdf9; }
+  .admin-tableau th, .admin-tableau td, .admin-tableau th[scope='row'] { display: table-cell; padding: 12px; vertical-align: top; }
+  .admin-tableau td::before, .admin-tableau th[scope='row']::before { content: none; }
+  .admin-tableau thead th { text-align: left; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--c-texte-doux); }
+  .admin-tableau { background: var(--c-blanc); border-radius: var(--rayon); box-shadow: var(--ombre); overflow: hidden; }
+}

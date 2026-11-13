@@ -28,14 +28,14 @@ const corpsSuivi = {
   },
 } as const
 
-export async function routesDemandes(app: FastifyInstance, { prisma, horloge, limiteDemandesParMinute }: OptionsApp) {
+export async function routesDemandes(app: FastifyInstance, { prisma, horloge, limiteDemandesParMinute, emails }: OptionsApp) {
   app.post<{ Body: EntreeDemande }>(
     '/api/demandes',
     { schema: { body: corpsDemande }, config: { rateLimit: { max: limiteDemandesParMinute, timeWindow: '1 minute' } } },
     async (req, rep) => {
       const enregistrer = () => {
         const maintenant = horloge()
-        return enregistrerDemande(prisma, req.body, maintenant, aujourdhuiIso(maintenant))
+        return enregistrerDemande(prisma, req.body, maintenant, aujourdhuiIso(maintenant), { emailEquipe: emails.equipe })
       }
       let resultat
       try {
@@ -46,7 +46,9 @@ export async function routesDemandes(app: FastifyInstance, { prisma, horloge, li
         resultat = await enregistrer()
       }
       switch (resultat.type) {
-        case 'ok': return rep.code(201).send(resultat.demande)
+        case 'ok':
+          emails.declencherEnvoi() // accusé de réception et notification partent tout de suite
+          return rep.code(201).send(resultat.demande)
         case 'sejour-inconnu': return rep.code(404).send({ message: 'Séjour introuvable.' })
         case 'invalide': return rep.code(400).send({ erreurs: resultat.erreurs })
         case 'conflit': return rep.code(409).send({ erreurs: resultat.erreurs })

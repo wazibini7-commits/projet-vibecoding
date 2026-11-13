@@ -1,7 +1,8 @@
-// Point d'entrée de l'interface. Trois écrans :
+// Point d'entrée de l'interface. Trois écrans publics, plus le back-office :
 //   - page d'accueil (#/ ou #section)      : la marque Vanlife et le séjour Bretagne Sauvage ;
 //   - page de demande (#/demande)          : formulaire et récapitulatif, chargée à la demande ;
-//   - confirmation (après l'envoi simulé)  : affiche la demande validée.
+//   - confirmation (après l'envoi)         : affiche la demande enregistrée ;
+//   - back-office (#/admin/…)              : réservé à l'équipe Vanlife, chargé à la demande.
 // La navigation repose sur l'adresse après « # » (voir utils/navigation.ts) : le bouton
 // « Précédent » du navigateur fonctionne, sans bibliothèque ni réglage d'hébergement.
 import { lazy, Suspense, useEffect, useState } from 'react'
@@ -16,6 +17,8 @@ import { lireRoute, ROUTE_ACCUEIL, type Position } from './utils/navigation'
 
 // Code de la page de demande téléchargé seulement quand on l'ouvre.
 const DemandePage = lazy(() => import('./pages/DemandePage'))
+// Back-office : jamais téléchargé par les visiteurs du site.
+const AdminApp = lazy(() => import('./admin/AdminApp'))
 
 /**
  * Place la page au bon endroit : en haut, ou sur la section demandée.
@@ -64,6 +67,17 @@ export default function App() {
     setDemandeEnvoyee(null)
     if (window.location.hash !== ROUTE_ACCUEIL) window.location.hash = ROUTE_ACCUEIL
     else setPosition({ page: 'accueil' })
+  }
+
+  if (position.page === 'admin') {
+    return (
+      <>
+        <LienEvitement />
+        <Suspense fallback={<PageChargement texte="Chargement de l'administration…" />}>
+          <AdminApp chemin={position.chemin ?? '/'} />
+        </Suspense>
+      </>
+    )
   }
 
   let ecran

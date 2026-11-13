@@ -19,9 +19,12 @@ import { ajouterJours } from '../utils/dates'
 
 const RETOUR = ajouterJours(DEPART, 4)
 /** Libellé d'un départ dans la liste : « samedi 17 avril · 2 vans libres » (année dans le titre du mois). */
-const option = (iso: string, places: string) => `${formaterDateFr(iso).replace(/ \d{4}$/, '')} · ${places}`
+const option = (iso: string, places: string) => `${formaterDateFr(iso, { annee: false })} · ${places}`
 
-beforeAll(() => serveur.listen({ onUnhandledRequest: 'error' }))
+beforeAll(async () => {
+  serveur.listen({ onUnhandledRequest: 'error' })
+  await import('./DemandePage') // page chargée à la demande : prête avant le premier test
+})
 afterAll(() => serveur.close())
 beforeEach(() => {
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo // non implémentés par jsdom
@@ -256,6 +259,7 @@ describe('Récapitulatif puis envoi au serveur', () => {
     expect(texte).toContain(formaterDateFr(RETOUR))
     expect(texte).toContain('Bretagne Sauvage')
     expect(texte).toMatch(/Ce n'est pas encore une réservation/)
+    expect(texte).toContain("Un e-mail récapitulatif vous est envoyé à l'adresse camille@exemple.fr")
     expect(texte).not.toMatch(/simul/i)
     expect(window.scrollTo).toHaveBeenCalled()
   })

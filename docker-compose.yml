@@ -1,6 +1,6 @@
 # Base de données PostgreSQL pour le développement.
 # Port 5433 (et non 5432) : un PostgreSQL est déjà installé sur la machine et utilise 5432.
-#   Démarrer : npm run db:up      (depuis backend/)
+#   Démarrer : npm run db:up      (depuis backend/) — démarre aussi Mailpit (e-mails)
 #   Arrêter  : npm run db:down    (les données sont conservées dans le volume)
 services:
   postgres:
@@ -20,6 +20,18 @@ services:
       interval: 5s
       timeout: 3s
       retries: 10
+
+  # Fausse boîte mail de développement : capture TOUS les e-mails envoyés par l'API (rien ne part sur internet).
+  #   Lire les e-mails : http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.33.1
+    container_name: vanlife-mailpit
+    restart: unless-stopped
+    ports:
+      - "1025:1025" # SMTP (utilisé par l'API)
+      - "8025:8025" # interface web
+    environment:
+      MP_MAX_MESSAGES: 500
 
 volumes:
   vanlife-pgdata:

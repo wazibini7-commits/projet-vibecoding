@@ -3,7 +3,8 @@
 Application web responsive (smartphone et ordinateur) : un visiteur découvre le circuit
 **Bretagne Sauvage** (5 jours / 4 nuits, 2 personnes, départ et retour à Rennes), comprend son
 prix indicatif et ses prestations, choisit un **départ disponible** et envoie une **demande de réservation**,
-enregistrée en base de données avec une référence (`VL-2026-0001`).
+enregistrée en base de données avec une référence (`VL-2026-0001`). Le client reçoit un e-mail
+récapitulatif et l'équipe Vanlife une notification.
 
 > **Version de démonstration — offre et disponibilités à confirmer.**
 > Les demandes sont enregistrées sans engagement ni paiement. Utilisez des coordonnées fictives.
@@ -27,9 +28,11 @@ npm install                 # site (dossier racine)
 cd backend
 npm install                 # serveur
 cp .env.example .env        # adresse de la base de données
-npm run db:up               # démarre PostgreSQL (Docker)
+npm run db:up               # démarre PostgreSQL et Mailpit (Docker)
 npm run db:migrate          # crée les tables
 npm run db:seed             # remplit la base : séjour, départs 2027, demandes fictives
+npm run utilisateur:creer -- --email prenom@vanlife.example --nom "Prénom Nom"
+                            # compte du back-office (mot de passe demandé dans le terminal)
 ```
 
 ## 3. Lancement — deux terminaux
@@ -45,17 +48,19 @@ Après un redémarrage de l'ordinateur : démarrer Docker Desktop, puis `npm run
 - **Sur un smartphone** (même réseau Wi-Fi) : `npm run dev -- --host`, puis ouvrir l'adresse *Network* affichée.
 - **Simuler un smartphone sur ordinateur** : `F12` puis `Ctrl+Shift+M`, choisir une largeur de 390 px.
 - **Version optimisée** : `npm run build` puis `npm run preview` → http://localhost:4173 (le serveur doit tourner).
-- **Voir les demandes enregistrées** : `npm run db:studio` dans `backend/`.
+- **Back-office (équipe Vanlife)** : **http://localhost:5173/#/admin** — traiter les demandes, gérer les départs.
+- **Voir la base de données brute** : `npm run db:studio` dans `backend/`.
+- **Lire les e-mails envoyés** : http://localhost:8025 (Mailpit : boîte de test, rien ne part sur internet).
 
 ## 4. Vérifications
 
 | Commande | Rôle |
 |---|---|
 | `npm run lint` | qualité du code (ESLint) |
-| `npm test` | 99 tests du site : règles de validation, liste des départs, parcours complet dans l'interface avec un faux serveur (pannes comprises), photos et crédits |
+| `npm test` | 124 tests du site : règles de validation, liste des départs, parcours complet avec un faux serveur (pannes comprises), back-office, photos et crédits |
 | `npm run build` | contrôle TypeScript + compilation de production |
 | `npm run verifier` | les trois commandes ci-dessus d'un coup |
-| `cd backend && npm run verifier` | 38 tests de l'API sur une base de test séparée + contrôle TypeScript |
+| `cd backend && npm run verifier` | 92 tests de l'API, des e-mails et du back-office (sécurité comprise) sur une base de test séparée + contrôle TypeScript |
 | `npm run demo` | parcours complet dans Chrome/Edge à 390 px et 1366 px, avec captures dans `docs/captures/` (serveur et site lancés). **Enregistre de vraies demandes** dans la base de développement (adresses `camille.demo+…@exemple.fr`) |
 
 ## 5. Parcours à présenter
@@ -67,7 +72,9 @@ Après un redémarrage de l'ordinateur : démarrer Docker Desktop, puis `npm run
    (départs complets grisés), prénom, e-mail. Essayer : demande vide, e-mail `camille@exemple`.
 4. **Vérifier** — récapitulatif (circuit, dates aller/retour, coordonnées), bouton *Modifier*.
 5. **Envoyer** — la demande est enregistrée : référence `VL-AAAA-NNNN`, réservation à confirmer par Vanlife.
-   Montrer ensuite la demande dans Prisma Studio, et la place en moins dans la liste des départs.
+   Montrer ensuite l'e-mail reçu dans Mailpit (http://localhost:8025) et la place en moins dans la liste des départs.
+6. **Traiter (back-office)** — `#/admin` : la demande apparaît « Reçue » ; l'ouvrir, la confirmer avec un commentaire
+   → e-mail « Votre séjour est confirmé » dans Mailpit, historique signé. Fermer un départ → il disparaît du site.
 
 ## 6. Organisation du code
 
@@ -81,6 +88,7 @@ src/                        SITE (React)
 ├── data/medias.ts          Catalogue des photos/vidéo : fichier, texte alternatif, lieu, auteur, licence
 ├── domain/                 Logique métier, PARTAGÉE avec le serveur
 │   ├── types.ts            Types du séjour, de la demande et contrat de l'API
+│   ├── admin.ts            Back-office : statuts, changements autorisés, contrat de l'API d'administration
 │   └── validation.ts       Règles et messages d'erreur du formulaire (appliqués aussi par le serveur)
 ├── utils/                  Dates (calculs sans décalage de fuseau), formats (prix, durée), navigation
 ├── components/
@@ -89,6 +97,7 @@ src/                        SITE (React)
 │   ├── demande/            Formulaire, liste des départs, résumé d'erreurs, récapitulatif
 │   └── ui/                 Briques réutilisables : bouton, champ, liste, chargement/erreur, photo, vidéo…
 ├── pages/                  Accueil, page de demande (#/demande, chargée à la demande), confirmation
+├── admin/                  Back-office (#/admin, chargé à part) : connexion, demandes, départs, compte
 ├── test/serveurFactice.ts  Faux serveur (MSW) pour les tests de l'interface
 └── styles/global.css       Charte graphique et responsive (mobile d'abord)
 
@@ -96,15 +105,16 @@ backend/                    SERVEUR (Fastify + PostgreSQL + Prisma) — détails
 ├── prisma/                 Tables (schema.prisma), migrations SQL, remplissage (seed.ts)
 ├── src/routes/             Adresses de l'API
 ├── src/services/           Règles du serveur : départs, places restantes, enregistrement, suivi
+├── src/emails/             Contenu des e-mails et file d'envoi (nouveaux essais en cas de panne)
 └── tests/                  Tests de l'API
 
-docker-compose.yml          Base PostgreSQL de développement (port 5433)
+docker-compose.yml          PostgreSQL (port 5433) et Mailpit (boîte mail de test, port 8025)
 scripts/demo.mjs            Démonstration automatisée
 docs/                       Fiche de restitution, journal, captures d'écran
 ```
 
 **Modifier l'offre** (prix, programme, prestations) : éditer `src/data/sejour.ts`, puis `npm run db:seed` dans `backend/`.
-**Ouvrir ou fermer des départs** : table `departs` (Prisma Studio) — une interface d'administration est prévue.
+**Ouvrir ou fermer des départs** : back-office, rubrique « Départs » (administrateurs).
 **Modifier une règle du formulaire** : `src/domain/validation.ts` — elle s'applique au site ET au serveur.
 
 ## 7. Choix techniques
@@ -115,6 +125,9 @@ docs/                       Fiche de restitution, journal, captures d'écran
 
 **Pas de double réservation** : le départ est verrouillé dans la base pendant le comptage des places.
 
+**E-mails fiables** : ils sont enregistrés avec la demande puis envoyés en arrière-plan, avec de nouveaux essais
+si la messagerie est en panne : une demande n'échoue jamais à cause d'un e-mail, et aucun e-mail n'est perdu.
+
 **Pannes** : si le serveur ne répond pas, le site l'explique et propose « Réessayer » ; la saisie n'est jamais perdue.
 
 **Navigation** : chaque page a sa propre adresse après le « # » (`#/` accueil, `#/demande` demande).
@@ -122,7 +135,7 @@ Le bouton « Précédent » du navigateur fonctionne et aucun réglage d'héberg
 
 Site : React 19 + TypeScript (strict) + Vite 6 · TanStack Query · police Playfair Display servie localement ·
 Vitest + Testing Library + MSW pour les tests · ESLint · Puppeteer (démo uniquement).
-Serveur : Fastify 5 · PostgreSQL 18 (Docker) · Prisma 6 · Vitest.
+Serveur : Fastify 5 · PostgreSQL 18 (Docker) · Prisma 6 · Nodemailer + Mailpit · Vitest.
 
 ## 8. Photographies et vidéo
 
@@ -140,7 +153,6 @@ Serveur : Fastify 5 · PostgreSQL 18 (Docker) · Prisma 6 · Vitest.
 
 ## 9. Pas encore réalisé
 
-E-mails automatiques, interface d'administration (traitement des demandes, ouverture des départs),
-page de suivi pour le client (l'API existe déjà : `POST /api/demandes/suivi`), paiement, mise en ligne.
+Page de suivi pour le client (l'API existe déjà : `POST /api/demandes/suivi`), paiement, mise en ligne.
 
 Voir aussi : [`docs/FICHE_RESTITUTION.md`](docs/FICHE_RESTITUTION.md) et [`backend/README.md`](backend/README.md).
