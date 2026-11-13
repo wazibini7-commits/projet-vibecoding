@@ -1,0 +1,25 @@
+# Base de données PostgreSQL pour le développement.
+# Port 5433 (et non 5432) : un PostgreSQL est déjà installé sur la machine et utilise 5432.
+#   Démarrer : npm run db:up      (depuis backend/)
+#   Arrêter  : npm run db:down    (les données sont conservées dans le volume)
+services:
+  postgres:
+    image: postgres:18-alpine
+    container_name: vanlife-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vanlife
+      POSTGRES_PASSWORD: vanlife
+      POSTGRES_DB: vanlife
+    ports:
+      - "5433:5432"
+    volumes:
+      - vanlife-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vanlife -d vanlife"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  vanlife-pgdata:

@@ -1,0 +1,188 @@
+// Modèle de données Vanlife — étape 1 de la feuille de route (base de données).
+// Conventions :
+//   - noms de modèles et de champs en français, comme dans le frontend (src/domain/types.ts) ;
+//   - tables en snake_case dans PostgreSQL (@@map / @map) ;
+//   - montants en CENTIMES (entiers) pour éviter les erreurs d'arrondi ;
+//   - dates calendaires (départ, retour) en type DATE, sans heure ni fuseau.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ---------- Offre ----------
+
+model Sejour {
+  id                 String          @id // identifiant lisible, ex. « bretagne-sauvage »
+  nom                String
+  accroche           String
+  destination        String
+  dureeJours         Int             @map("duree_jours")
+  dureeNuits         Int             @map("duree_nuits")
+  public             String
+  nombreVoyageurs    Int             @map("nombre_voyageurs")
+  villeDepart        String          @map("ville_depart")
+  villeRetour        String          @map("ville_retour")
+  prixCentimes       Int             @map("prix_centimes") // prix pour l'ensemble des voyageurs
+  devise             String          @default("EUR")
+  prixAConfirmer     Boolean         @default(true) @map("prix_a_confirmer")
+  elementsAConfirmer String[]        @map("elements_a_confirmer")
+  publie             Boolean         @default(false) // visible sur le site public
+  programme          JourProgramme[]
+  prestations        Prestation[]
+  departs            Depart[]
+  creeLe             DateTime        @default(now()) @map("cree_le")
+  modifieLe          DateTime        @updatedAt @map("modifie_le")
+
+  @@map("sejours")
+}
+
+model JourProgramme {
+  id          Int     @id @default(autoincrement())
+  sejourId    String  @map("sejour_id")
+  sejour      Sejour  @relation(fields: [sejourId], references: [id], onDelete: Cascade)
+  jour        Int // 1 = jour du départ
+  titre       String
+  description String
+  lieuNuit    String? @map("lieu_nuit")
+  distanceKm  Int?    @map("distance_km")
+
+  @@unique([sejourId, jour])
+  @@map("jours_programme")
+}
+
+enum TypePrestation {
+  INCLUSE // comprise dans le prix
+  A_PREVOIR // à la charge du client
+
+  @@map("type_prestation")
+}
+
+model Prestation {
+  id       Int            @id @default(autoincrement())
+  sejourId String         @map("sejour_id")
+  sejour   Sejour         @relation(fields: [sejourId], references: [id], onDelete: Cascade)
+  type     TypePrestation
+  libelle  String
+  ordre    Int            @default(0) // ordre d'affichage
+
+  @@index([sejourId, type])
+  @@map("prestations")
+}
+
+enum StatutDepart {
+  OUVERT
+  COMPLET
+  FERME
+
+  @@map("statut_depart")
+}
+
+/// Une date de départ proposée pour un séjour, avec le nombre de vans disponibles.
+model Depart {
+  id        Int          @id @default(autoincrement())
+  sejourId  String       @map("sejour_id")
+  sejour    Sejour       @relation(fields: [sejourId], references: [id], onDelete: Cascade)
+  date      DateTime     @db.Date
+  capacite  Int          @default(1) // nombre de vans (donc de demandes acceptables)
+  statut    StatutDepart @default(OUVERT)
+  demandes  Demande[]
+  creeLe    DateTime     @default(now()) @map("cree_le")
+  modifieLe DateTime     @updatedAt @map("modifie_le")
+
+  @@unique([sejourId, date])
+  @@index([date])
+  @@map("departs")
+}
+
+// ---------- Clients et demandes ----------
+
+model Client {
+  id                 String    @id @default(uuid()) @db.Uuid
+  prenom             String
+  nom                String?
+  email              String    @unique // toujours enregistré en minuscules
+  telephone          String?
+  consentementRgpdLe DateTime? @map("consentement_rgpd_le") // date d'acceptation de la politique de confidentialité
+  demandes           Demande[]
+  creeLe             DateTime  @default(now()) @map("cree_le")
+  modifieLe          DateTime  @updatedAt @map("modifie_le")
+
+  @@map("clients")
+}
+
+enum StatutDemande {
+  RECUE // vient d'être envoyée par le client
+  EN_ETUDE // prise en charge par Vanlife
+  CONFIRMEE
+  REFUSEE
+  ANNULEE
+
+  @@map("statut_demande")
+}
+
+model Demande {
+  id              String             @id @default(uuid()) @db.Uuid
+  reference       String             @unique // ex. VL-2027-0042, communiquée au client
+  clientId        String             @map("client_id") @db.Uuid
+  client          Client             @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  departId        Int                @map("depart_id")
+  depart          Depart             @relation(fields: [departId], references: [id], onDelete: Restrict)
+  dateRetour      DateTime           @map("date_retour") @db.Date
+  nombreVoyageurs Int                @map("nombre_voyageurs")
+  prixCentimes    Int                @map("prix_centimes") // prix indicatif au moment de la demande (figé)
+  message         String?
+  noteInterne     String?            @map("note_interne") // visible uniquement par Vanlife
+  statut          StatutDemande      @default(RECUE)
+  historique      HistoriqueStatut[]
+  creeLe          DateTime           @default(now()) @map("cree_le")
+  modifieLe       DateTime           @updatedAt @map("modifie_le")
+
+  @@index([statut])
+  @@index([departId])
+  @@index([clientId])
+  @@map("demandes")
+}
+
+// ---------- Administration ----------
+
+enum Role {
+  ADMIN
+  GESTIONNAIRE
+
+  @@map("role")
+}
+
+model Utilisateur {
+  id                String             @id @default(uuid()) @db.Uuid
+  email             String             @unique
+  nom               String
+  motDePasseHash    String             @map("mot_de_passe_hash") // jamais le mot de passe en clair (argon2, étape 5)
+  role              Role               @default(GESTIONNAIRE)
+  actif             Boolean            @default(true)
+  changementsStatut HistoriqueStatut[]
+  creeLe            DateTime           @default(now()) @map("cree_le")
+  derniereConnexion DateTime?          @map("derniere_connexion")
+
+  @@map("utilisateurs")
+}
+
+/// Trace de chaque changement de statut d'une demande : qui, quand, de quoi vers quoi.
+model HistoriqueStatut {
+  id            Int            @id @default(autoincrement())
+  demandeId     String         @map("demande_id") @db.Uuid
+  demande       Demande        @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  ancienStatut  StatutDemande? @map("ancien_statut") // nul à la création
+  nouveauStatut StatutDemande  @map("nouveau_statut")
+  auteurId      String?        @map("auteur_id") @db.Uuid // nul = le client ou le système
+  auteur        Utilisateur?   @relation(fields: [auteurId], references: [id], onDelete: SetNull)
+  commentaire   String?
+  creeLe        DateTime       @default(now()) @map("cree_le")
+
+  @@index([demandeId])
+  @@map("historique_statuts")
+}

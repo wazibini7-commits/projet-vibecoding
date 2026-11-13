@@ -3,5 +3,7 @@ dist/
 *.tsbuildinfo
 *.log
 .DS_Store
-# Ancienne version Python abandonnée (ne fait pas partie du livrable)
-backend/
+# Secrets (mots de passe, URL de base de données) — seul .env.example est commité
+.env
+.env.*
+!.env.example
