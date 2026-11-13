@@ -15,7 +15,10 @@ export default function Footer() {
         <div>
           <p className="footer-titre">Prototype</p>
           <p>{MENTION_DEMO}.</p>
-          <p>Aucune donnée n'est enregistrée ni transmise. Utilisez des coordonnées fictives pendant les essais.</p>
+          <p>
+            Les demandes envoyées sont enregistrées par Vanlife, sans engagement ni paiement.
+            Utilisez des coordonnées fictives pendant les essais.
+          </p>
         </div>
       </div>
 

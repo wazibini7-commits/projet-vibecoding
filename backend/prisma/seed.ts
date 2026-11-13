@@ -66,9 +66,9 @@ async function seedDeparts() {
 }
 
 const DEMANDES_FICTIVES = [
-  { reference: 'VL-2027-0001', prenom: 'Camille', nom: 'Exemple', email: 'camille@exemple.fr', depart: '2027-05-15', statut: StatutDemande.RECUE },
-  { reference: 'VL-2027-0002', prenom: 'Louis', nom: 'Test', email: 'louis@exemple.fr', depart: '2027-06-12', statut: StatutDemande.EN_ETUDE },
-  { reference: 'VL-2027-0003', prenom: 'Inès', nom: 'Démo', email: 'ines@exemple.fr', depart: '2027-07-03', statut: StatutDemande.CONFIRMEE },
+  { reference: 'VL-DEMO-0001', prenom: 'Camille', nom: 'Exemple', email: 'camille@exemple.fr', depart: '2027-05-15', statut: StatutDemande.RECUE },
+  { reference: 'VL-DEMO-0002', prenom: 'Louis', nom: 'Test', email: 'louis@exemple.fr', depart: '2027-06-12', statut: StatutDemande.EN_ETUDE },
+  { reference: 'VL-DEMO-0003', prenom: 'Inès', nom: 'Démo', email: 'ines@exemple.fr', depart: '2027-07-03', statut: StatutDemande.CONFIRMEE },
 ] as const
 
 /** Chemin de statuts parcouru pour arriver au statut final (pour un historique cohérent). */

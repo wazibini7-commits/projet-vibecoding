@@ -1,7 +1,11 @@
 // Démonstration automatisée du parcours complet dans un vrai navigateur (Chrome ou Edge),
 // sur smartphone (390 px) et ordinateur (1366 px). Génère des captures dans docs/captures/.
 //
-// Prérequis : l'application tourne (npm run dev) et Chrome ou Edge est installé.
+// Prérequis : Chrome ou Edge installé, et deux terminaux ouverts :
+//   - cd backend && npm run dev   (API + base de données, Docker Desktop démarré)
+//   - npm run dev                 (site)
+// Attention : la démonstration ENREGISTRE de vraies demandes dans la base de développement
+// (adresses camille.demo+…@exemple.fr), qui occupent des places sur le premier départ disponible.
 // Lancement : npm run demo
 // Variables facultatives : APP_URL (défaut http://localhost:5173/), CHROME_PATH.
 import fs from 'node:fs'
@@ -30,6 +34,11 @@ try {
   console.error(`L'application ne répond pas sur ${URL}. Lancez d'abord « npm run dev » dans un autre terminal.`)
   process.exit(1)
 }
+const sante = await fetch(new globalThis.URL('api/sante', URL)).then((r) => r.ok).catch(() => false)
+if (!sante) {
+  console.error("L'API ne répond pas. Lancez « npm run dev » dans le dossier backend (Docker Desktop démarré).")
+  process.exit(1)
+}
 fs.mkdirSync(CAPTURES, { recursive: true })
 
 let echecs = 0
@@ -38,17 +47,11 @@ const verifier = (ok, libelle) => {
   if (!ok) echecs++
 }
 
-const pad = (n) => String(n).padStart(2, '0')
-const d = new Date()
-d.setDate(d.getDate() + 30)
-const DEPART = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-
-/** Renseigne un <input type="date"> quelle que soit la langue du navigateur. */
-async function saisirDate(page, iso) {
-  await page.$eval('#champ-date-depart', (el, v) => {
-    Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(el, v)
-    el.dispatchEvent(new Event('input', { bubbles: true }))
-  }, iso)
+/** Choisit le premier départ disponible dans la liste ; renvoie sa date. */
+async function choisirDepart(page) {
+  const date = await page.$eval('#champ-date-depart', (s) => [...s.options].find((o) => o.value && !o.disabled)?.value)
+  await page.select('#champ-date-depart', date)
+  return date
 }
 
 async function sansDebordement(page, ecran) {
@@ -64,6 +67,8 @@ async function parcours(navigateur, largeur, hauteur, nom) {
   page.on('console', (m) => m.type() === 'error' && erreursConsole.push(m.text()))
   await page.setViewport({ width: largeur, height: hauteur, isMobile: largeur < 700, hasTouch: largeur < 700 })
   await page.goto(URL, { waitUntil: 'networkidle0' })
+  await page.waitForSelector('#sejour-titre') // séjour chargé depuis l'API
+  const email = `camille.demo+${nom}-${Date.now()}@exemple.fr`
   const capture = (etape, pleinePage = false) =>
     page.screenshot({ path: path.join(CAPTURES, `${nom}-${etape}.png`), fullPage: pleinePage })
 
@@ -94,6 +99,8 @@ async function parcours(navigateur, largeur, hauteur, nom) {
   verifier((await page.evaluate(() => location.hash)) === '#/demande', 'clic sur « Faire une demande » → page #/demande')
   verifier(await page.evaluate(() => window.scrollY === 0), 'page de demande affichée en haut')
   verifier((await page.$eval('.resume-sejour', (e) => e.innerText)).includes('Bretagne Sauvage'), 'rappel du séjour sur la page de demande')
+  const nbDeparts = await page.$$eval('#champ-date-depart option:not([value=""])', (o) => o.length)
+  verifier(nbDeparts > 0, `${nbDeparts} départs proposés par le serveur`)
   await sansDebordement(page, 'page de demande')
   await new Promise((r) => setTimeout(r, 500)) // fin du fondu d'arrivée (0,3 s)
   await capture('1b-page-demande')
@@ -108,7 +115,7 @@ async function parcours(navigateur, largeur, hauteur, nom) {
   // 3. E-mail mal formé (les autres champs sont corrects)
   await page.type('#champ-prenom', 'Camille')
   await page.type('#champ-email', 'camille@exemple')
-  await saisirDate(page, DEPART)
+  await choisirDepart(page)
   await page.click('#demande button[type=submit]')
   verifier((await page.$$('.msg-erreur')).length === 1 && !!(await page.$('#champ-email-erreur')), 'e-mail mal formé : seul ce champ est signalé')
   verifier((await page.$eval('#champ-prenom', (e) => e.value)) === 'Camille', 'valeurs saisies conservées')
@@ -117,23 +124,29 @@ async function parcours(navigateur, largeur, hauteur, nom) {
 
   // 4. Saisie complète → récapitulatif
   await page.click('#champ-email', { clickCount: 3 })
-  await page.type('#champ-email', 'camille@exemple.fr')
+  await page.type('#champ-email', email)
   await page.click('#demande button[type=submit]')
   await page.waitForSelector('.recap')
   const recap = await page.$eval('.recap', (e) => e.innerText)
-  verifier(recap.includes('Bretagne Sauvage') && recap.includes('Camille') && recap.includes('camille@exemple.fr'), 'récapitulatif cohérent avec la saisie')
-  verifier(/simulé/.test(recap), 'récapitulatif : envoi simulé annoncé')
+  verifier(recap.includes('Bretagne Sauvage') && recap.includes('Camille') && recap.includes(email), 'récapitulatif cohérent avec la saisie')
+  verifier(/transmise à Vanlife/.test(recap) && /reste à confirmer/.test(recap), 'récapitulatif : transmission et réservation à confirmer annoncées')
   await sansDebordement(page, 'récapitulatif')
   await page.$eval('.recap', (e) => e.scrollIntoView())
   await capture('4-recapitulatif')
 
-  // 5. Envoi simulé → confirmation
+  // 5. Envoi au serveur → confirmation
   await page.click('.actions .btn-principal')
   await page.waitForSelector('#confirmation-titre')
   await new Promise((r) => setTimeout(r, 300))
   const conf = await page.evaluate(() => document.body.innerText)
-  verifier(conf.includes('Bretagne Sauvage') && /DEMO-[A-Z0-9]{6}/.test(conf), 'confirmation : circuit et référence de test')
-  verifier(/envoi simulé/i.test(conf) && /reste à confirmer/.test(conf), 'confirmation : envoi simulé, réservation à confirmer')
+  const reference = conf.match(/VL-\d{4}-\d{4}/)?.[0]
+  verifier(conf.includes('Bretagne Sauvage') && !!reference, `confirmation : circuit et référence ${reference ?? '(absente)'}`)
+  verifier(/réservation à confirmer/.test(conf) && /pas encore une réservation/.test(conf), 'confirmation : demande reçue, réservation à confirmer')
+  const suivi = await page.evaluate(async (ref, mail) => {
+    const r = await fetch('/api/demandes/suivi', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ reference: ref, email: mail }) })
+    return r.ok ? (await r.json()).statut : r.status
+  }, reference, email)
+  verifier(suivi === 'RECUE', `demande bien enregistrée en base (statut : ${suivi})`)
   verifier(conf.includes('Version de démonstration'), 'confirmation : statut provisoire visible')
   verifier(await page.evaluate(() => window.scrollY === 0), 'confirmation affichée en haut de page')
   await sansDebordement(page, 'confirmation')
@@ -155,7 +168,7 @@ async function parcours(navigateur, largeur, hauteur, nom) {
   await page.goBack()
   await page.waitForSelector('#demande-titre')
   verifier(true, 'bouton « Précédent » du navigateur : retour à la page de demande')
-  verifier(erreursConsole.length === 0, 'aucune erreur dans la console')
+  verifier(erreursConsole.length === 0, 'aucune erreur dans la console' + (erreursConsole.length ? ' : ' + erreursConsole.join(' | ') : ''))
   await page.close()
 }
 

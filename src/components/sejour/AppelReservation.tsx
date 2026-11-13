@@ -17,11 +17,11 @@ export default function AppelReservation({ sejour }: { sejour: Sejour }) {
         <p className="surtitre">{sejour.nom} · {formaterPrix(sejour.prix.montant)} pour {sejour.prix.pourPersonnes} (indicatif)</p>
         <h2 id="reserver-titre">Envie de prendre la route ?</h2>
         <p className="accroche">
-          Formulez votre demande en une minute : prénom, e-mail et date de départ souhaitée.
+          Formulez votre demande en une minute : choisissez une date de départ, indiquez votre prénom et votre e-mail.
           Vanlife reviendra vers vous pour confirmer les disponibilités.
         </p>
         <LienBouton href={ROUTE_DEMANDE}>Faire une demande de réservation</LienBouton>
-        <p className="section-appel-note">Envoi simulé — aucune réservation n'est enregistrée.</p>
+        <p className="section-appel-note">Sans engagement ni paiement : Vanlife confirme la disponibilité avant toute réservation.</p>
       </div>
     </section>
   )

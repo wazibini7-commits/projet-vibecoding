@@ -1,4 +1,6 @@
-// Données du circuit pilote, définies localement (aucun backend, aucune requête HTTP).
+// Contenu du circuit pilote. Depuis l'étape 3, le site l'affiche via l'API (base de données) ;
+// ce fichier reste la SOURCE du remplissage de la base (backend/prisma/seed.ts → npm run db:seed)
+// et sert de jeu de données aux tests.
 // Source : brief client et cahier des charges v1.0 (§ 7.1 à 7.3).
 // Ce sont des HYPOTHÈSES de travail à valider par Vanlife avant toute commercialisation.
 import type { Sejour } from '../domain/types'
@@ -6,8 +8,11 @@ import type { Sejour } from '../domain/types'
 /** Mention obligatoire, au mot près (cahier des charges § 9.3). */
 export const MENTION_DEMO = 'Version de démonstration — offre et disponibilités à confirmer'
 
+/** Identifiant du séjour présenté sur le site (adresse /api/sejours/:id). */
+export const ID_SEJOUR_PILOTE = 'bretagne-sauvage'
+
 export const SEJOUR_BRETAGNE_SAUVAGE: Sejour = {
-  id: 'bretagne-sauvage',
+  id: ID_SEJOUR_PILOTE,
   nom: 'Bretagne Sauvage',
   accroche: "Cinq jours en van aménagé entre presqu'île de Crozon et mer d'Iroise.",
   destination: "Finistère — presqu'île de Crozon et mer d'Iroise",

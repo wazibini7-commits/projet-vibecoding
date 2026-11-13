@@ -1,20 +1,22 @@
 import type { FormEvent, Ref } from 'react'
-import type { ChampDemande, DemandeSaisie, ErreursDemande } from '../../domain/types'
+import type { ChampDemande, DemandeSaisie, DepartDisponible, ErreursDemande } from '../../domain/types'
 import { PRENOM_LONGUEUR_MAX } from '../../domain/validation'
 import ChampFormulaire from '../ui/ChampFormulaire'
+import ChampListe from '../ui/ChampListe'
 import { Bouton } from '../ui/Bouton'
 import ResumeErreurs from './ResumeErreurs'
 import { ID_CHAMP, LIBELLES_CHAMPS } from './champs'
+import { groupesDeparts } from './optionsDeparts'
 
 export interface FormulaireDemandeProps {
   saisie: DemandeSaisie
   erreurs: ErreursDemande
+  /** Départs proposés par le serveur (date, places restantes). */
+  departs: DepartDisponible[]
   onChangement: (champ: ChampDemande, valeur: string) => void
   /** Sortie d'un champ (permet une validation au fil de la saisie). */
   onSortieChamp?: (champ: ChampDemande) => void
   onValider: () => void
-  /** Date minimale proposée par le calendrier (AAAA-MM-JJ). */
-  dateMin?: string
   /** Rappel du trajet sous le champ date, ex. « Départ de Rennes, retour 4 jours plus tard. » */
   aideDate?: string
   libelleBouton?: string
@@ -27,7 +29,7 @@ export interface FormulaireDemandeProps {
  * noValidate : on remplace les bulles natives par nos messages explicites.
  */
 export default function FormulaireDemande({
-  saisie, erreurs, onChangement, onSortieChamp, onValider, dateMin, aideDate,
+  saisie, erreurs, departs, onChangement, onSortieChamp, onValider, aideDate,
   libelleBouton = 'Vérifier ma demande', refResumeErreurs,
 }: FormulaireDemandeProps) {
   function soumettre(e: FormEvent) {
@@ -63,16 +65,16 @@ export default function FormulaireDemande({
         inputMode="email"
         placeholder="Ex. : camille@exemple.fr"
       />
-      <ChampFormulaire
+      <ChampListe
         id={ID_CHAMP.dateDepart}
-        type="date"
         libelle={LIBELLES_CHAMPS.dateDepart}
         valeur={saisie.dateDepart}
         onValeur={(v) => onChangement('dateDepart', v)}
         onBlur={() => onSortieChamp?.('dateDepart')}
         erreur={erreurs.dateDepart}
         aide={aideDate}
-        min={dateMin}
+        invite="Choisissez un départ"
+        groupes={groupesDeparts(departs)}
       />
 
       <Bouton type="submit" pleineLargeur>{libelleBouton}</Bouton>

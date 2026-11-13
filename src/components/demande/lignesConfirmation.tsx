@@ -17,6 +17,6 @@ export function lignesConfirmation(demande: DemandeReservation): LigneRecap[] {
       valeur: <>{formaterPrix(sejour.prixIndicatif)} pour {sejour.nombreVoyageurs} <Badge>à confirmer</Badge></>,
     },
     { libelle: 'Contact', valeur: `${voyageur.prenom} — ${voyageur.email}`, cesure: true },
-    { libelle: 'Référence de test', valeur: demande.reference },
+    { libelle: 'Référence', valeur: demande.reference },
   ]
 }

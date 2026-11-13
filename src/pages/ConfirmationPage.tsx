@@ -1,5 +1,5 @@
-// État de confirmation : circuit et date demandée, envoi simulé, réservation à confirmer
-// (cahier des charges § 9.2). Affiche uniquement la demande validée reçue en props.
+// Confirmation : la demande est enregistrée par le serveur ; la réservation reste à confirmer par Vanlife.
+// Affiche uniquement la demande renvoyée par le serveur (props).
 import { useEffect, useRef } from 'react'
 import Header from '../components/layout/Header'
 import ListeRecap from '../components/ui/ListeRecap'
@@ -27,15 +27,15 @@ export default function ConfirmationPage({ demande, onRetour }: ConfirmationPage
       <main id="contenu" tabIndex={-1}>
         <section className="section confirmation" aria-labelledby="confirmation-titre">
           <div className="conteneur conteneur-etroit">
-            <p className="statut-pastille">Demande simulée — réservation à confirmer</p>
+            <p className="statut-pastille">Demande reçue — réservation à confirmer</p>
             <h1 id="confirmation-titre" ref={refTitre} tabIndex={-1}>
-              Merci {demande.voyageur.prenom}, votre demande a bien été simulée
+              Merci {demande.voyageur.prenom}, votre demande est enregistrée
             </h1>
 
             <Alerte type="info">
               <p>
-                <strong>Ceci est un envoi simulé :</strong> aucune demande n'a été transmise et aucune
-                réservation n'est enregistrée. La réservation reste à confirmer par Vanlife.
+                Votre référence : <strong className="reference">{demande.reference}</strong>.
+                Notez-la : elle vous sera demandée pour suivre votre demande.
               </p>
             </Alerte>
 
@@ -46,8 +46,8 @@ export default function ConfirmationPage({ demande, onRetour }: ConfirmationPage
 
             <h2 className="h3 suite-titre">Et ensuite ?</h2>
             <p>
-              Dans la version définitive, Vanlife vérifiera les disponibilités pour cette date puis vous
-              recontactera par e-mail. Aucun paiement n'est demandé à ce stade.
+              Ce n'est pas encore une réservation. Vanlife vérifie la disponibilité du van pour cette date,
+              puis vous recontacte à l'adresse {demande.voyageur.email}. Aucun paiement n'est demandé à ce stade.
             </p>
 
             <Bouton onClick={onRetour}>Retour au circuit</Bouton>
